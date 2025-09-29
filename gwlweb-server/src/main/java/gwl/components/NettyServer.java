@@ -3,6 +3,9 @@ package gwl.components;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import gwl.components.NettyHandlers.ChatHandler;
+import gwl.components.NettyHandlers.CommandHandler;
+import gwl.components.NettyHandlers.DispatcherHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -36,11 +39,14 @@ public class NettyServer implements CommandLineRunner {
                         p.addLast(new HttpObjectAggregator(65536));
                         p.addLast(new ChunkedWriteHandler());
                         p.addLast(new WebSocketServerProtocolHandler("/ws"));
+                        p.addLast(new DispatcherHandler());
                         p.addLast(new ChatHandler());
+                        p.addLast(new CommandHandler());
                     }
                 });
 
         b.bind(port).sync();
         System.out.println("Netty WebSocket Server started at ws://localhost:" + port + "/ws");
     }
+    
 }

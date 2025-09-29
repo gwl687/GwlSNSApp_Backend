@@ -20,12 +20,13 @@ public class JwtUtil {// 使用 Keys.secretKeyFor 生成安全密钥
         return Jwts.builder()
                 .claim("id", id)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L)) // 一周
+                //测试用，暂时永不过期
+                //.setExpiration(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L)) // 一周
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
     }
 
-    public static Long parseToken(String token) {
+    public static long parseToken(String token) {
         Claims claims = Jwts.parser()
                 .setSigningKey(SECRET_KEY)
                 .parseClaimsJws(token)
