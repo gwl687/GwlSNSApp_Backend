@@ -30,17 +30,16 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
     // private MessageService messageService; // Spring 管理的业务逻辑 Bean
     AttributeKey<Long> USER_ID = AttributeKey.valueOf("userId");
 
-
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) throws Exception {
-        //String text = msg.text();
+        // String text = msg.text();
         // 解析成 Map
-        //Map<String, Object> data = mapper.readValue(text, Map.class);
-        //String type = msg.get("type");
+        // Map<String, Object> data = mapper.readValue(text, Map.class);
+        // String type = msg.get("type");
         long toUser = msg.getToUser();
+        long fromUser = ctx.channel().attr(DispatcherHandler.USER_ID).get();
         String content = msg.getContent();
-
-        String userId = Long.toString(ctx.channel().attr(DispatcherHandler.USER_ID).get());
+        msg.setFromUser(fromUser);
 
         // 保存聊天记录到数据库/Redis
 
@@ -48,7 +47,7 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
         Channel toChannel = DispatcherHandler.userMap.get(toUser);
         if (toChannel != null && toChannel.isActive()) {
             toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
-            log.info("用户" + userId + "说: " + content);
+            log.info("用户" + msg.getFromUser() + "说: " + content);
         } else {
             ctx.channel().writeAndFlush(new TextWebSocketFrame("用户 " + toUser + " 不在线"));
             log.info("用户" + toUser + "不在线");
