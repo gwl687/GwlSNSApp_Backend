@@ -1,5 +1,6 @@
 package gwl.components;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -20,9 +21,20 @@ import io.netty.handler.stream.ChunkedWriteHandler;
 
 @Component
 public class NettyServer implements CommandLineRunner {
+
+    // 注入handler
+    @Autowired
+    private DispatcherHandler dispatcherHandler;
+
+    @Autowired
+    private ChatHandler chatHandler;
+
+    @Autowired
+    private CommandHandler commandHandler;
+
     @Override
     public void run(String... args) throws Exception {
-        start(8081 );
+        start(8081);
     }
 
     public void start(int port) throws InterruptedException {
@@ -39,14 +51,16 @@ public class NettyServer implements CommandLineRunner {
                         p.addLast(new HttpObjectAggregator(65536));
                         p.addLast(new ChunkedWriteHandler());
                         p.addLast(new WebSocketServerProtocolHandler("/ws"));
-                        p.addLast(new DispatcherHandler());
-                        p.addLast(new ChatHandler());
-                        p.addLast(new CommandHandler());
+                        // 从spring注入
+                        p.addLast(dispatcherHandler);
+                        p.addLast(commandHandler);
+                        p.addLast(chatHandler);
+
                     }
                 });
 
         b.bind(port).sync();
         System.out.println("Netty WebSocket Server started at ws://localhost:" + port + "/ws");
     }
-    
+
 }

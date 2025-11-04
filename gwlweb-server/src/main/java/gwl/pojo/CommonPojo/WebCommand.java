@@ -10,10 +10,13 @@ import lombok.Data;
 @AllArgsConstructor
 @Builder
 public class WebCommand {
-    public int toUserId;
-    public String command;
+    private long toUser;
+    private long fromUser;
+    private String command;
+    private String type;
     public WebCommand(JsonNode json) {
-        this.toUserId = json.get("userId").asInt();
+        this.toUser = json.get("toUser").asLong();
         this.command = json.get("command").asText();
+        this.type = json.get("type").asText();
     }
 }

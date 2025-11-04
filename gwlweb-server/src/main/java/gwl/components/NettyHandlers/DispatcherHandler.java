@@ -14,6 +14,7 @@ import gwl.pojo.CommonPojo.WebCommand;
 import gwl.util.CommonUtil;
 import gwl.util.JwtUtil;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -25,8 +26,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@ChannelHandler.Sharable
 public class DispatcherHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
-    static final ConcurrentHashMap<Long, Channel> userMap = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<Long, Channel> userMap = new ConcurrentHashMap<>();
     static final AttributeKey<Long> USER_ID = AttributeKey.valueOf("userId");
 
     @Override
@@ -57,7 +59,7 @@ public class DispatcherHandler extends SimpleChannelInboundHandler<TextWebSocket
         String text = msg.text();
         JsonNode jsonData = CommonUtil.mapper.readTree(text);
         String type = jsonData.get("type").asText();
-
+        log.info("消息类型为" + type);
         switch (type) {
             case "command":
                 ctx.fireChannelRead(new WebCommand(jsonData)); // 传给 ChatHandler

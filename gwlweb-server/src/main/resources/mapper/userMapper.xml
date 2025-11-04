@@ -1,9 +1,31 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.gwl.mapper.UserMapper">
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        insert into user(username,password,emailaddress,sex,status,create_time,update_time)
-        values (#{username}, #{password}, #{emailadress}, #{sex}, #{status}, #{createTime}, #{updateTime})
-    </insert>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="gwl.mapper.UserMapper">
+  <!-- 注册用户 -->
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id"> insert into
+    user(username,password,emailaddress,sex,status,create_time,update_time) values (
+    #{username},#{password}, #{emailadress}, #{sex}, #{status}, #{createTime}, #{updateTime}) </insert>
+  <!-- 建群 -->
+  <insert id="createGroupChat" parameterType="GroupChat" useGeneratedKeys="true"
+    keyProperty="groupId"> INSERT INTO chatgroups (name,owner_id) VALUES (#{groupName},#{ownerId}); </insert>
+  <!-- 插入群用户表 -->
+  <insert id="insertGroupChatMember" parameterType="gwl.pojo.VO.GroupChatVO"> INSERT INTO
+    group_members (group_id, user_id, role) VALUES <foreach collection="memberIds"
+      item="memberId"
+      separator=","> (#{groupId}, #{memberId}, <choose>
+        <when test="memberId == _parameter.ownerId"> 'admin' </when>
+        <otherwise> 'member' </otherwise>
+      </choose>) </foreach>
+  </insert>
+  <!-- 获取群信息 -->
+  <select id="getGroupChat" parameterType="long" resultType="GroupChat"> SELECT g.id AS groupId,
+    g.name AS groupName, g.owner_id AS ownerId, g.avatar_url AS avatarUrl, GROUP_CONCAT(m.user_id)
+    AS memberIds FROM chatgroups g LEFT JOIN group_members m ON g.id = m.group_id WHERE g.id = #{id}
+    GROUP BY g.id </select>
+  <!--获取聊天列表-->
+  <select id="getChatGroupByChatId" parameterType="long"
+    resultType="GroupChat"> SELECT g.id AS groupId, g.name AS groupName, g.owner_id AS
+    ownerId, g.avatar_url AS avatarUrl, GROUP_CONCAT(m.user_id) AS memberIds FROM chatgroups g LEFT
+    JOIN group_members m ON g.id = m.group_id WHERE g.id = #{id} GROUP BY g.id; </select>
+
 </mapper>

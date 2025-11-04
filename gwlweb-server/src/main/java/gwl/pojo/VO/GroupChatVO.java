@@ -1,5 +1,7 @@
 package gwl.pojo.VO;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,12 +10,13 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "获取好友列表VO")
-public class FriendListVO {
-    @Schema(description = "用户名")
-    private String userName;
-    @Schema(description = "主键值")
-    private Long id;
+@NoArgsConstructor
+@Schema(description = "获取群信息VO")
+public class GroupChatVO {
+    Long groupId;
+    String groupName;
+    Long ownerId;
+    String avatarUrl;
+    List<Long> memberIds;
 }

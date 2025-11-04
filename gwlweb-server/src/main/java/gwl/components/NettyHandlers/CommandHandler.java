@@ -18,6 +18,7 @@ import gwl.service.MessageService;
 import gwl.util.CommonUtil;
 import gwl.util.JwtUtil;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
+@ChannelHandler.Sharable
 public class CommandHandler extends SimpleChannelInboundHandler<WebCommand> {
     private static final ConcurrentHashMap<Long, io.netty.channel.Channel> userMap = new ConcurrentHashMap<>();
 
@@ -36,18 +38,20 @@ public class CommandHandler extends SimpleChannelInboundHandler<WebCommand> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebCommand msg) throws Exception {
-        int toUser = msg.getToUserId();
+        long toUser = msg.getToUser();
+        long fromUser = ctx.channel().attr(DispatcherHandler.USER_ID).get();
         String command = msg.getCommand();
-
+        msg.setFromUser(fromUser);
         // 保存聊天记录到数据库/Redis
 
-        Channel toChannel = userMap.get(toUser);
         String sendMessage = CommonUtil.mapper.writeValueAsString(msg);
+        Channel toChannel = DispatcherHandler.userMap.get(toUser);
         if (toChannel != null && toChannel.isActive()) {
+            
             toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
-            log.info("向用户" + toUser + "发起视频通话");
+            //log.info("向用户" + toUser + "发起视频通话");
         } else {
-            // ctx.channel().writeAndFlush(new TextWebSocketFrame("用户 " + toUser + " 不在线"));
+            ctx.channel().writeAndFlush(new TextWebSocketFrame("用户 " + toUser + " 不在线"));
             log.info("用户" + toUser + "不在线");
         }
     }

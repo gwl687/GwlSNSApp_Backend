@@ -18,6 +18,8 @@ public class UserLoginVO {
     private String token;
     @Schema(description = "用户名")
     private String userName;
+    @Schema(description = "avatarUrl")
+    private String avatarUrl;
     @Schema(description = "主键值")
     private Long id;
 }

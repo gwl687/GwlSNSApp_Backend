@@ -28,6 +28,10 @@ public class User {
 
     private int status;
 
+    private boolean isGroup;
+
+    private String  avatarurl;
+
     //@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
 
