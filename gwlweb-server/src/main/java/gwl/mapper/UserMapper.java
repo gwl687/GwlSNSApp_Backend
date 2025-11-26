@@ -13,8 +13,9 @@ import gwl.entity.GroupChat;
 import gwl.entity.User;
 import gwl.pojo.CommonPojo.Message;
 import gwl.pojo.DTO.AddFriendToChatListDTO;
+import gwl.pojo.DTO.CreateGroupChatDTO;
 import gwl.pojo.DTO.GroupmessageDTO;
-import gwl.pojo.DTO.UpdateUserInfoDTO;
+import gwl.pojo.DTO.UserInfoDTO;
 import gwl.pojo.VO.GroupChatVO;
 import gwl.pojo.VO.GroupMessagesVO;
 import gwl.pojo.entity.ChatFriend;
@@ -75,10 +76,10 @@ public interface UserMapper {
             update test_user
             set userName = #{username},
                 sex = #{sex},
-                password = #{password},
                 avatarurl = #{avatarurl}
+                where id = #{id}
             """)
-    public int updateUserInfo(UpdateUserInfoDTO updateUserInfo);
+    public int updateUserInfo(UserInfoDTO userInfo);
 
     /**
      * 新建群聊
@@ -116,6 +117,21 @@ public interface UserMapper {
      */
     @Insert("insert into chatlist (userId, friendId ,isgroup) values (#{id},#{friendId},#{isGroup})")
     void addFriendToChatList(AddFriendToChatListDTO addFriendToChatListDTO);
+
+    /*
+     * 添加群成员
+     */
+    @Insert("insert into group_members (group_id,user_id) values (#{groupId},#{userId})")
+    Boolean addGroupMembers(Long groupId, Long userId);
+
+    @Insert("delete from group_members where group_id = #{groupId} and user_id = #{userId}")
+    Boolean removeGroupMembers(Long groupId, Long userId);
+
+    /*
+     * 更改群名
+     */
+    @Insert("update chatgroups set name = #{groupName} where id = #{groupId}")
+    Boolean updateGroupName(Long groupId, String groupName);
 
     /**
      * 获取聊天列表的各个id

@@ -112,6 +112,26 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.17.2</version> <!-- 用最新稳定版即可 -->
         </dependency>
+        <!-- AWS SDK v2 - S3 核心库 -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.27.20</version> <!-- ✅ 建议用最新稳定版本 -->
+        </dependency>
+        <dependency>
+            <groupId>io.livekit</groupId>
+            <artifactId>livekit-server</artifactId>
+            <version>0.10.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <version>3.5.5</version>
+        </dependency>
     </dependencies>
 
     <build>

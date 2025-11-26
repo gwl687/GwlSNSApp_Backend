@@ -2,6 +2,8 @@ package gwl.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import gwl.entity.GroupChat;
 import gwl.entity.User;
 import gwl.pojo.CommonPojo.Message;
@@ -9,10 +11,14 @@ import gwl.pojo.DTO.AddFriendToChatListDTO;
 import gwl.pojo.DTO.CreateGroupChatDTO;
 import gwl.pojo.DTO.GetGroupChatDTO;
 import gwl.pojo.DTO.GroupmessageDTO;
-import gwl.pojo.DTO.UpdateUserInfoDTO;
+import gwl.pojo.DTO.UserInfoDTO;
 import gwl.pojo.DTO.UserLoginDTO;
 import gwl.pojo.VO.GroupChatVO;
 import gwl.pojo.VO.GroupMessagesVO;
+import gwl.pojo.VO.UserInfoVO;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.services.s3.endpoints.internal.Value.Bool;
 
 public interface UserService {
   /**
@@ -23,11 +29,16 @@ public interface UserService {
    */
   User userLogin(UserLoginDTO userLoginDTO);
 
+  /*
+   * 获取用户信息
+   */
+  User getUserInfo();
+
   /**
    * 更新用户信息
    * @return
    */
-  Boolean updateUserInfo(UpdateUserInfoDTO updateUserInfoDTO);
+  Boolean updateUserInfo(UserInfoDTO userInfoDTO);
 
   /**
    * 获取好友列表
@@ -68,4 +79,11 @@ public interface UserService {
    * 存储群消息
    */
   void saveGroupMessage(Message msg);
+
+  /**
+   * 上传头像
+   * @param file
+   * @return
+   */
+  public Boolean uploadAvatar(MultipartFile file) throws AwsServiceException, SdkClientException, java.io.IOException;
 }

@@ -1,5 +1,6 @@
 package gwl.controller;
 
+import java.io.IOException;
 import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,9 +11,11 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import gwl.context.BaseContext;
 import gwl.dubboService.DubboGreetingService;
@@ -22,11 +25,12 @@ import gwl.pojo.DTO.AddFriendToChatListDTO;
 import gwl.pojo.DTO.CreateGroupChatDTO;
 import gwl.pojo.DTO.GetGroupChatDTO;
 import gwl.pojo.DTO.GroupmessageDTO;
-import gwl.pojo.DTO.UpdateUserInfoDTO;
+import gwl.pojo.DTO.UserInfoDTO;
 import gwl.pojo.DTO.UserLoginDTO;
 import gwl.pojo.VO.FriendListVO;
 import gwl.pojo.VO.GroupChatVO;
 import gwl.pojo.VO.GroupMessagesVO;
+import gwl.pojo.VO.UserInfoVO;
 import gwl.pojo.VO.UserLoginVO;
 import gwl.result.Result;
 import gwl.service.UserService;
@@ -35,6 +39,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 
 @RestController
 @RequestMapping("/user")
@@ -86,13 +92,31 @@ public class TestController {
     }
 
     /**
+     * 获取用户信息
+     * 
+     * @return
+     */
+    @GetMapping(path = "getuserinfo", produces = "application/json")
+    Result<UserInfoVO> getUserInfo() {
+        User user = userService.getUserInfo();
+        UserInfoVO userInfoVO = UserInfoVO.builder()
+                .username(user.getUsername())
+                .sex(user.getSex())
+                .avatarurl(user.getAvatarurl())
+                .emailaddress(user.getEmailadress())
+                .build();
+        return Result.success(userInfoVO);
+    }
+
+    /**
+     * 更新用户信息
      * 
      * @param updateUserInfoDTO
      * @return
      */
-    @PostMapping(path="/updateuserinfo",produces = "application/json")
-    Boolean updateUserInfo(UpdateUserInfoDTO updateUserInfoDTO){
-        return userService.updateUserInfo(updateUserInfoDTO);
+    @PostMapping(path = "/updateuserinfo", produces = "application/json")
+    Result<Boolean> updateUserInfo(UserInfoDTO userInfoDTO) {
+        return Result.success(userService.updateUserInfo(userInfoDTO));
     }
 
     /**
@@ -195,7 +219,7 @@ public class TestController {
     @Operation(summary = "保存群聊消息")
     Result<Boolean> saveGroupMessage(
             @org.springframework.web.bind.annotation.RequestBody GroupmessageDTO groupMessageDTO) {
-        //userService.saveGroupMessage(groupMessageDTO);
+        // userService.saveGroupMessage(groupMessageDTO);
         return Result.success(true);
     }
 
@@ -209,5 +233,19 @@ public class TestController {
     @Operation(summary = "获取群聊消息")
     Result<List<GroupMessagesVO>> getGroupMessages(@RequestParam("groupId") Long groupId) {
         return Result.success(userService.getGroupMessages(groupId));
+    }
+
+    /**
+     * 上传头像
+     * 
+     * @param file
+     * @return
+     * @throws IOException
+     */
+    @PutMapping(path = "/uploadavatar", produces = "application/json")
+    @Operation(summary = "upload avatar")
+    Result<Boolean> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
+        userService.uploadAvatar(file);
+        return Result.success(true);
     }
 }

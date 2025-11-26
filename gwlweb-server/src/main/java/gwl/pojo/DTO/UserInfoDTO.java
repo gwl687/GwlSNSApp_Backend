@@ -1,9 +1,15 @@
 package gwl.pojo.DTO;
 
+import java.io.Serializable;
+
+import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class UpdateUserInfoDTO {
+@Builder
+public class UserInfoDTO implements Serializable{
+    private Long id;
+
     private String username;
 
     private String sex;
