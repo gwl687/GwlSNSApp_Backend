@@ -4,7 +4,7 @@
 spring:
   profiles:
     active: dev
-#   application:
+#/   application:
 #     name: du-consumer
 #   datasource:
 #     url: jdbc:mysql://localhost:3306/gwlweb?useSSL=false&serverTimezone=Asia/Tokyo&characterEncoding=utf-8
