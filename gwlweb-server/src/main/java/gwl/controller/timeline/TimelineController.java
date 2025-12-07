@@ -1,5 +1,7 @@
 package gwl.controller.timeline;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,7 +25,12 @@ public class TimelineController {
 
     @PostMapping(path = "posttimeline", produces = "application/json")
     Result<String> postTimeline(@RequestBody TimelineDTO timelineDTO) {
-        timelineService.postTimeline(timelineDTO);
+        log.info("发帖子: {}",timelineDTO);
+        try {
+            timelineService.postTimeline(timelineDTO);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return Result.success("posttimeline");
     }
 }

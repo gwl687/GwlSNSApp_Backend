@@ -54,7 +54,7 @@ public class GroupServiceImpl implements GroupService {
             String memberIdsString = groupChat.getMemberIds();
             List<Long> memberIds = Arrays.stream(memberIdsString.split(",")).map(Long::parseLong).toList();
             // 发送更新群名的消息
-            channelManager.sendCommand(memberIds, "groupMessageChange");
+            channelManager.sendCommand(BaseContext.getCurrentId(), memberIds, "groupMessageChange");
             log.info("发送群信息更改的消息(添加群成员)");
         } catch (Exception e) {
             e.printStackTrace();
@@ -88,7 +88,7 @@ public class GroupServiceImpl implements GroupService {
             }
             userMapper.updateGroupName(groupId, groupName);
             // 发送更新群名的消息
-            channelManager.sendCommand(memberIds, "groupMessageChange");
+            channelManager.sendCommand(BaseContext.getCurrentId(),memberIds, "groupMessageChange");
             log.info("发送群信息更改的消息(移除群成员)");
         } catch (Exception e) {
             e.printStackTrace();
@@ -101,7 +101,6 @@ public class GroupServiceImpl implements GroupService {
      */
     @Override
     public String createLivekitToken(String roomName) {
-
         AccessToken token = new AccessToken(API_KEY, API_SECRET);
         token.setIdentity(BaseContext.getCurrentId().toString());
         token.addGrants(new RoomJoin(true),new RoomName(roomName));

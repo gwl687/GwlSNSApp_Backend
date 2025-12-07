@@ -15,8 +15,10 @@ import gwl.util.CommonUtil;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.apachecommons.CommonsLog;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
+@Slf4j
 public class ChannelManager {
     private final ConcurrentMap<Long, Channel> userChannelMap = new ConcurrentHashMap<>();
 
@@ -32,24 +34,24 @@ public class ChannelManager {
         userChannelMap.remove(userId);
     }
 
-    public void sendCommand(List<Long> ids, String command) {
+    public void sendCommand(Long userId, List<Long> ids, String command) {
         try {
             for (Long id : ids) {
                 Channel toChannel = DispatcherHandler.userMap.get(id);
                 WebCommand webCommand = WebCommand.builder()
-                        .fromUser(BaseContext.getCurrentId())
+                        .fromUser(userId)
                         .toUser(id)
                         .type(command)
                         .build();
-                String sendMessage;
-                sendMessage = CommonUtil.mapper.writeValueAsString(webCommand);
+                String sendCommand;
+                sendCommand = CommonUtil.mapper.writeValueAsString(webCommand);
                 if (toChannel != null && toChannel.isActive()) {
-                    toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
+                    toChannel.writeAndFlush(new TextWebSocketFrame(sendCommand));
+                    log.info(command);
                 }
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
-
     }
 }

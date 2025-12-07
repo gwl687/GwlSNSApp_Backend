@@ -11,6 +11,6 @@ public interface TimelineMapper {
     /**
      * 推送帖子
      */
-    @Insert("insert into timeline (user_id,content,imgurls) values (#{userId},#{content},#{imgUrls,typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler})")
+    @Insert("insert into timeline (user_id,context,img_urls) values (#{userId},#{context},#{imgUrls,typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler})")
     Long postTimeline(TimelineDTO timelineDTO);
 }

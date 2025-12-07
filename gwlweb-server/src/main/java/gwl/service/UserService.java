@@ -1,5 +1,6 @@
 package gwl.service;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
@@ -85,5 +86,5 @@ public interface UserService {
    * @param file
    * @return
    */
-  public Boolean uploadAvatar(MultipartFile file) throws AwsServiceException, SdkClientException, java.io.IOException;
+  public Boolean uploadToS3(MultipartFile file,String type) throws IOException;
 }

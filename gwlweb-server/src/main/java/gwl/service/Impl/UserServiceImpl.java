@@ -249,10 +249,10 @@ public class UserServiceImpl implements UserService {
      * 
      * @param file
      * @return
-     * @throws java.io.IOException 
+     * @throws java.io.IOException
      */
     @Override
-    public Boolean uploadAvatar(MultipartFile file) throws java.io.IOException {
+    public Boolean uploadToS3(MultipartFile file, String type) throws java.io.IOException {
 
         // 创建 S3 客户端
         try (
@@ -263,7 +263,7 @@ public class UserServiceImpl implements UserService {
                         .build()) {
 
             // 上传路径，例如：avatars/时间戳_文件名
-            String key = "avatars/" + BaseContext.getCurrentId();
+            String key = type + "/" + BaseContext.getCurrentId();
 
             // 构建上传请求
             PutObjectRequest request = PutObjectRequest.builder()
@@ -279,15 +279,15 @@ public class UserServiceImpl implements UserService {
             String url = "https://gwltest-01.s3.ap-northeast-1.amazonaws.com/" + key;
             System.out.println("✅ 上传成功: " + key);
             UserInfoDTO userInfoDTO = UserInfoDTO.builder()
-            .id(BaseContext.getCurrentId())
-            .avatarurl(url)
-            .username(userMapper.getByUserId(BaseContext.getCurrentId()).getUsername())
-            .sex(userMapper.getByUserId(BaseContext.getCurrentId()).getSex())
-            .build();
+                    .id(BaseContext.getCurrentId())
+                    .avatarurl(url)
+                    .username(userMapper.getByUserId(BaseContext.getCurrentId()).getUsername())
+                    .sex(userMapper.getByUserId(BaseContext.getCurrentId()).getSex())
+                    .build();
             Boolean result = updateUserInfo(userInfoDTO);
             return result;
 
-        } catch (S3Exception | IOException e) {
+        } catch (IOException e) {
             System.err.println("❌ 上传失败: " + e.getMessage());
             e.printStackTrace();
             return false;

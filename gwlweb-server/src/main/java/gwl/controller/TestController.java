@@ -245,7 +245,7 @@ public class TestController {
     @PutMapping(path = "/uploadavatar", produces = "application/json")
     @Operation(summary = "upload avatar")
     Result<Boolean> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
-        userService.uploadAvatar(file);
+        userService.uploadToS3(file,"avatar");
         return Result.success(true);
     }
 }

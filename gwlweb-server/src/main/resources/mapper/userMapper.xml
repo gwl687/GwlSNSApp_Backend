@@ -6,7 +6,7 @@
     user(username,password,emailaddress,sex,status,create_time,update_time) values (
     #{username},#{password}, #{emailadress}, #{sex}, #{status}, #{createTime}, #{updateTime}) </insert>
   <!-- 建群 -->
-  <insert id="createGroupChat" parameterType="GroupChat" useGeneratedKeys="true"
+  <insert id="createGroupChat" parameterType="gwl.entity.GroupChat" useGeneratedKeys="true"
     keyProperty="groupId"> INSERT INTO chatgroups (name,owner_id) VALUES (#{groupName},#{ownerId}); </insert>
   <!-- 插入群用户表 -->
   <insert id="insertGroupChatMember" parameterType="gwl.pojo.VO.GroupChatVO"> INSERT INTO
