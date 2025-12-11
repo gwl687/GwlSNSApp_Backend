@@ -1,9 +1,9 @@
 package gwl.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
-
 
 public interface CommonService {
     /**
@@ -13,4 +13,10 @@ public interface CommonService {
      */
     Boolean uploadToS3(MultipartFile file, String fileName, String type)
             throws IOException;
+    /**
+     * 获取s3的img地址列表
+     * @param path
+     * @return
+     */
+    public List<String> getS3ImgUrls(String path);
 }

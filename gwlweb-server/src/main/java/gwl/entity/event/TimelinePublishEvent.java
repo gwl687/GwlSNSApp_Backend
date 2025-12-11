@@ -1,4 +1,4 @@
-package event;
+package gwl.entity.event;
 
 import java.util.List;
 
@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class TimelinePublishEvent {
     private Long userId;         // 谁发的动态
     private Long timelineId;     // 动态ID
-    private List<Long> friendIds; // 要通知哪些好友
+    //private List<Long> friendIds; // 要通知哪些好友
 }
