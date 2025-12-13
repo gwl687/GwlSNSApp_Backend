@@ -11,6 +11,7 @@ import javax.swing.plaf.synth.Region;
 
 import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -68,6 +69,9 @@ public class UserServiceImpl implements UserService {
     @org.springframework.beans.factory.annotation.Value("${aws.s3.avatar}")
     private String bucketOrAccessPoint;
 
+    @Autowired
+    private StringRedisTemplate stringRedis;
+
     @Override
     public gwl.entity.User userLogin(UserLoginDTO userLoginDTO) {
         String emailaddress = userLoginDTO.getEmailaddress();
@@ -85,6 +89,8 @@ public class UserServiceImpl implements UserService {
             // 账号被锁定
             throw new RuntimeException(MessageConstant.ACCOUNT_LOCKED);
         }
+        // device token
+        stringRedis.opsForValue().set("push_token:" + user.getId(), userLoginDTO.getPushToken());
         return user;
     }
 

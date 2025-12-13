@@ -15,11 +15,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
 
 import gwl.components.ChannelManager;
 import gwl.context.BaseContext;
@@ -35,6 +40,7 @@ import gwl.service.TimelineService;
 import gwl.service.UserService;
 import io.micrometer.core.ipc.http.HttpSender.Request;
 import io.micrometer.observation.Observation.CheckedRunnable;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -43,6 +49,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.SdkClientException;
 
 @Service
+@Slf4j
 public class TimelineServiceImpl implements TimelineService {
     @Autowired
     private UserMapper userMapper;
@@ -59,7 +66,7 @@ public class TimelineServiceImpl implements TimelineService {
     @Value("${fcm.server-key}")
     private String serverKey;
 
-    @Value("${fcm.send-url}")
+    @Value("${fcm.url}")
     private String fcmUrl;
 
     // @Autowired
@@ -80,21 +87,23 @@ public class TimelineServiceImpl implements TimelineService {
                 .createTime(timelineDTO.getCreateTime())
                 .build();
         Long postId = timelineMapper.postTimeline(timelineContent);
-        String publisherName = userMapper.getByUserId(timelineDTO.getUserId()).getName();
-        // 存图片到S3
-        for (MultipartFile file : timelineDTO.getFiles()) {
-            commonService.uploadToS3(file, file.getName(), "timeline/" + postId);
-        }
-        // 拿到s3的图片url,更新mysql
-        List<String> imgUrls = commonService.getS3ImgUrls("timeline/" + postId);
-        timelineMapper.updateTimelineImgs(imgUrls);
-        // 写入redis timelinecontent
+        String publisherName = userMapper.getByUserId(timelineDTO.getUserId()).getUsername();
         String key = "timeline:post:" + postId;
         Map<String, String> timelineMap = new HashMap<>();
+        // 存图片到S3
+        if (timelineDTO.getFiles() != null) {
+            for (MultipartFile file : timelineDTO.getFiles()) {
+                commonService.uploadToS3(file, file.getName(), "timeline/" + postId);
+            }
+            // 拿到s3的图片url,更新mysql
+            List<String> imgUrls = commonService.getS3ImgUrls("timeline/" + postId);
+            timelineMapper.updateTimelineImgs(imgUrls);
+            timelineMap.put("imgUrls", JSON.toJSONString(imgUrls));
+        }
+        // 写入redis timelinecontent
         timelineMap.put("postId", postId.toString());
         timelineMap.put("userId", timelineDTO.getUserId().toString());
         timelineMap.put("context", timelineDTO.getContext());
-        timelineMap.put("imgUrls", JSON.toJSONString(imgUrls));
         timelineMap.put("createTime", timelineDTO.getCreateTime());
         redis.opsForHash().putAll(key, timelineMap);
 
@@ -109,21 +118,31 @@ public class TimelineServiceImpl implements TimelineService {
         for (int i = 0; i < friendIds.size(); i += batchSize) {
             int end = Math.min(i + batchSize, friendIds.size());
             List<String> batch = friendIds.subList(i, end).stream().map(String::valueOf).toList();
+            // log.info("check gwl null {},{},{},{}", postId, batch.get(0), publisherName,
+            // timelineDTO.getContext());
             // 推送一份分片
+            TimelinePushEvent timelinePushEvent = TimelinePushEvent.builder()
+                    .postId(postId)
+                    .fanIds(batch)
+                    .publisherName(publisherName)
+                    .content(timelineDTO.getContext()).build();
             kafkaTemplate.send(
-                    "timeline_push",
-                    JSON.toJSONString(Map.of(
-                            "postId", postId,
-                            "fanIds", batch,
-                            "publisherName", publisherName,
-                            "content", timelineDTO.getContext())));
+                    "timeline_publish",
+                    timelinePushEvent);
+            log.info("推送消息");
+            // JSON.toJSONString(Map.of(
+            // "postId", postId,
+            // "fanIds", batch,
+            // "publisherName", publisherName,
+            // "content", timelineDTO.getContext())));
         }
     }
 
     // 推送给粉丝的消费者
     @Override
-    @KafkaListener(topics = "timeline_push", groupId = "timeline-group")
-    public void onTimelinePush(TimelinePushEvent event) throws IOException {
+    @KafkaListener(topics = "timeline_publish", groupId = "timeline-group")
+    public void onTimelinePush(@Payload TimelinePushEvent event) throws IOException, FirebaseMessagingException {
+        log.info("消费消息");
         // 推送给多个好友
         Long postId = event.getPostId();
         List<String> fanIds = event.getFanIds();
@@ -146,17 +165,21 @@ public class TimelineServiceImpl implements TimelineService {
 
             // 发送 iOS / Android 推送通知
             sendPushToUser(fanId, publisherName, postId, content);
+
         }
     }
 
-    public void sendPushToUser(String fanId, String publisherName, Long postId, String content) throws IOException {
+    public void sendPushToUser(String fanId, String publisherName, Long postId, String content)
+            throws IOException, FirebaseMessagingException {
         String title = publisherName + "posted a new update";
-        String body = content;
 
         // 查询用户的 push token
         String token = redis.opsForValue().get("push_token:" + fanId);
         if (token == null) {
+            log.info("查不到该用户devicetoken,return");
             return;
+        } else {
+            log.info("推送给用户:{}", fanId);
         }
 
         // iOS
@@ -165,7 +188,7 @@ public class TimelineServiceImpl implements TimelineService {
         // }
         // Android
         if (token.startsWith("android:")) {
-            sendFCMPush(token.substring(8), title, body, content);
+            sendFCMPush(token.substring(8), title, content);
         }
     }
 
@@ -173,29 +196,38 @@ public class TimelineServiceImpl implements TimelineService {
         //
     }
 
-    public void sendFCMPush(String deviceToken, String title, String body, String content) throws IOException {
-        OkHttpClient client = new OkHttpClient();
+    public void sendFCMPush(String deviceToken, String title, String content)
+            throws IOException, FirebaseMessagingException {
+        // OkHttpClient client = new OkHttpClient();
 
-        JSONObject message = new JSONObject();
-        message.put("to", deviceToken);
+        // JSONObject message = new JSONObject();
+        // message.put("to", deviceToken);
 
-        JSONObject notification = new JSONObject();
-        notification.put("title", title);
-        notification.put("body", body);
+        // JSONObject notification = new JSONObject();
+        // notification.put("title", title);
+        // notification.put("body", body);
 
-        message.put("notification", notification);
+        // message.put("notification", notification);
 
-        RequestBody requestBody = RequestBody.create(
-                message.toString(),
-                MediaType.parse("application/json; charset=utf-8"));
+        // RequestBody requestBody = RequestBody.create(
+        // message.toString(),
+        // MediaType.parse("application/json; charset=utf-8"));
 
-        okhttp3.Request request = new okhttp3.Request.Builder()
-                .url(fcmUrl)
-                .addHeader("Authorization", "key=" + serverKey)
-                .post(requestBody)
+        // okhttp3.Request request = new okhttp3.Request.Builder()
+        // .url(fcmUrl)
+        // .addHeader("Authorization", "key=" + serverKey)
+        // .post(requestBody)
+        // .build();
+        Message message = Message.builder()
+                .setToken(deviceToken)
+                .setNotification(
+                        Notification.builder()
+                                .setTitle(title)
+                                .setBody(content)
+                                .build())
                 .build();
 
-        Response response = client.newCall(request).execute();
-        System.out.println("FCM Response: " + response.body().string());
+        String response = FirebaseMessaging.getInstance().send(message);
+        System.out.println("FCM Response: " + response);
     }
 }
