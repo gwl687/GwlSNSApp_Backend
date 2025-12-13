@@ -19,4 +19,5 @@ public class TimelineContent {
     private String context;
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> imgUrls;
+    private String createTime;
 }

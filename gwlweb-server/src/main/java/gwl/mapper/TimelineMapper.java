@@ -18,7 +18,7 @@ public interface TimelineMapper {
      * 推送帖子
      */
     @Options(useGeneratedKeys = true, keyProperty = "userId")
-    @Insert("insert into timeline_content (user_id,context,img_urls) values (#{userId},#{context},#{imgUrls,typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler})")
+    @Insert("insert into timeline_content (user_id,context,img_urls,create_time) values (#{userId},#{context},#{imgUrls,typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},#{createTime})")
     Long postTimeline(TimelineContent timelineContent);
 
     /**

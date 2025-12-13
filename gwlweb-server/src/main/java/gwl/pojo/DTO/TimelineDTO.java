@@ -10,5 +10,6 @@ import lombok.Data;
 public class TimelineDTO {
     private Long userId;
     private String context;
+    private String createTime;
     private List<MultipartFile> files;
 }

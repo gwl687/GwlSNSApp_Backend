@@ -1,5 +1,7 @@
 package gwl.service;
 
+import java.io.IOException;
+
 import org.springframework.kafka.annotation.KafkaListener;
 
 import gwl.entity.event.TimelinePublishEvent;
@@ -13,13 +15,7 @@ public interface TimelineService {
     void postTimeline(TimelineDTO TimelineDTO) throws java.io.IOException;
 
     /**
-     * kafka发帖消费者
-     * 
-     * @param event
-     */
-    public void onTimelinePublish(TimelinePublishEvent event);
-    /**
      * kafka推送消费者
      */
-    public void onTimelinePush(TimelinePushEvent event);
+    public void onTimelinePush(TimelinePushEvent event) throws IOException;
 }

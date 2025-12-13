@@ -9,6 +9,7 @@ import java.util.List;
 import org.apache.curator.framework.recipes.nodes.GroupMember;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -51,6 +52,8 @@ public class TestController {
     private DubboGreetingService dbs;
     @Autowired
     private UserService userService;
+    @Autowired
+    private StringRedisTemplate redis;
 
     /**
      * dubbo相关
@@ -74,6 +77,7 @@ public class TestController {
         log.info("员工登录：{}", userLoginDTO);
         try {
             User user = userService.userLogin(userLoginDTO);
+            redis.opsForValue().set("push_token:" + user.getId(), userLoginDTO.getPushToken());
             // 登录成功后生成令牌
             String token = JwtUtil.generateToken(user.getId());
             UserLoginVO userloginVO = UserLoginVO.builder()
@@ -245,7 +249,7 @@ public class TestController {
     @PutMapping(path = "/uploadavatar", produces = "application/json")
     @Operation(summary = "upload avatar")
     Result<Boolean> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
-        userService.uploadToS3(file,"avatar");
+        userService.uploadToS3(file, "avatar");
         return Result.success(true);
     }
 }

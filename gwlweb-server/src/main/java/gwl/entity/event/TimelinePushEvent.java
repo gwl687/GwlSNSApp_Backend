@@ -1,5 +1,7 @@
 package gwl.entity.event;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,6 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TimelinePushEvent {
-    private Long FanId; 
-    private Long UserId;
+    private String publisherName;
+    private String content;
+    private Long postId;
+    private List<String> FanIds; 
 }
