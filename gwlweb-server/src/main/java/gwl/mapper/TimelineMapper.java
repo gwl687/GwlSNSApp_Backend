@@ -45,11 +45,21 @@ public interface TimelineMapper {
      * 
      * @return
      */
-    @Select("select tu.username ,tc.context,tc.img_urls,tc.created_at from timeline_content tc left join test_user tu on tc.user_id = tu.id where tc.id = #{timelineId}")
-    @Results({
-            @Result(column = "img_urls", property = "imgUrls", typeHandler = JacksonTypeHandler.class)
-    })
-    TimelineVO getTimelineContent(Long timelineId);
+    // @Select("select tu.username ,tc.context,tc.img_urls,tc.created_at from
+    // timeline_content tc left join test_user tu on tc.user_id = tu.id where tc.id
+    // = #{timelineId}")
+    // @Results({
+    // @Result(column = "img_urls", property = "imgUrls", typeHandler =
+    // JacksonTypeHandler.class)
+    // })
+    TimelineVO getTimelineContent(Long timelineId, Long currentUserId);
+
+    /**
+     * 查询是否被我点击了喜欢
+     * 
+     * @param imgUrls
+     * @param postId
+     */
 
     /**
      * 更新mysql里图片url

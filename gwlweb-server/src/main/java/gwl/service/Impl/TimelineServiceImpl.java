@@ -93,7 +93,7 @@ public class TimelineServiceImpl implements TimelineService {
                 .build();
         timelineMapper.postTimeline(timelineContent);
         Long postId = timelineContent.getId();
-        TimelineVO timelineVO = timelineMapper.getTimelineContent(postId);
+        TimelineVO timelineVO = timelineMapper.getTimelineContent(postId, BaseContext.getCurrentId());
 
         // timeline里先给自己加记录
         timelineMapper.addTimeline(BaseContext.getCurrentId(), postId, timelineVO.getCreatedAt());
@@ -242,7 +242,7 @@ public class TimelineServiceImpl implements TimelineService {
         List<TimelineVO> timelineVOs = new ArrayList<>();
         List<Long> timelineIds = timelineMapper.getTimeline(BaseContext.getCurrentId());
         for (Long timelineId : timelineIds) {
-            timelineVOs.add(timelineMapper.getTimelineContent(timelineId));
+            timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
         }
         return timelineVOs;
     }
