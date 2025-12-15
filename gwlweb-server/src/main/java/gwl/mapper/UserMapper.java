@@ -82,6 +82,12 @@ public interface UserMapper {
     public int updateUserInfo(UserInfoDTO userInfo);
 
     /**
+     * 获取指定ID的用户名
+     */
+    @Select("select username from test_user where id = #{id}")
+    String getUserName(Long id);
+
+    /**
      * 新建群聊
      * 
      * @param groupMembers

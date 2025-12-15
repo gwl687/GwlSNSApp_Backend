@@ -34,6 +34,7 @@ import gwl.pojo.VO.GroupMessagesVO;
 import gwl.pojo.VO.UserInfoVO;
 import gwl.pojo.VO.UserLoginVO;
 import gwl.result.Result;
+import gwl.service.CommonService;
 import gwl.service.UserService;
 import gwl.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,6 +55,8 @@ public class TestController {
     private UserService userService;
     @Autowired
     private StringRedisTemplate redis;
+    @Autowired
+    private CommonService commonService;
 
     /**
      * dubbo相关
@@ -249,7 +252,8 @@ public class TestController {
     @PutMapping(path = "/uploadavatar", produces = "application/json")
     @Operation(summary = "upload avatar")
     Result<Boolean> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
-        userService.uploadToS3(file, "avatar");
+        String uploadKey = "avatar/" + BaseContext.getCurrentId();
+        commonService.uploadToS3(file, uploadKey);
         return Result.success(true);
     }
 }

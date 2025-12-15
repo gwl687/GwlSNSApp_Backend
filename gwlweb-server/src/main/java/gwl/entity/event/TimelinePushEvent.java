@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class TimelinePushEvent {
     private String publisherName;
     private String content;
+    private String createdAt;
     private Long postId;
-    private List<String> fanIds; 
+    private List<String> fanIds;
 }

@@ -1,16 +1,23 @@
 package gwl.constant;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import lombok.Data;
+
+@Data
+@Component
+@ConfigurationProperties(prefix = "aws.s3")
 public class AWSConstant {
-    // AWS property
-    @org.springframework.beans.factory.annotation.Value("${aws.accessKey}")
-    public static String accessKey;
 
-    @org.springframework.beans.factory.annotation.Value("${aws.secretKey}")
-    public static String secretKey;
+    private String region;
 
-    @org.springframework.beans.factory.annotation.Value("${aws.region}")
-    public static String region;
+    private String accessKey;
 
-    @org.springframework.beans.factory.annotation.Value("${aws.s3.avatar}")
-    public static String bucketOrAccessPoint;
+    private String secretKey;
+
+    private String bucket;
+
+    private String url;
 }

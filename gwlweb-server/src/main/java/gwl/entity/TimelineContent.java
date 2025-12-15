@@ -15,9 +15,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TimelineContent {
+    private Long id;
     private Long userId;
     private String context;
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> imgUrls;
-    private String createTime;
 }

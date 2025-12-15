@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import gwl.pojo.DTO.TimelineDTO;
+import gwl.pojo.VO.TimelineVO;
 import gwl.result.Result;
 import gwl.service.TimelineService;
 import gwl.service.UserService;
@@ -30,13 +32,11 @@ public class TimelineController {
     @PostMapping(path = "posttimeline", produces = "application/json")
     Result<String> postTimeline(@RequestParam("userId") Long userId,
             @RequestParam("context") String context,
-            @RequestParam("createTime") String createTime,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         TimelineDTO timelineDTO = TimelineDTO.builder()
                 .userId(userId)
                 .context(context)
-                .createTime(createTime)
-                .files(files != null ? files : null).build();
+                .files(files).build();
         log.info("发帖子: {}", timelineDTO);
         try {
             timelineService.postTimeline(timelineDTO);
@@ -44,5 +44,15 @@ public class TimelineController {
             e.printStackTrace();
         }
         return Result.success("posttimeline");
+    }
+
+    /**
+     * 获取timeline内容
+     * 
+     * @return
+     */
+    @GetMapping(path = "gettimelinepost", produces = "application/json")
+    Result<List<TimelineVO>> getTimelinePost() {
+        return Result.success(timelineService.getTimelinePost());
     }
 }

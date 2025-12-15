@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.print.DocFlavor.STRING;
 import javax.print.attribute.standard.MediaTray;
@@ -27,6 +28,7 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 
 import gwl.components.ChannelManager;
+import gwl.constant.AWSConstant;
 import gwl.context.BaseContext;
 import gwl.entity.TimelineContent;
 import gwl.entity.User;
@@ -35,6 +37,8 @@ import gwl.entity.event.TimelinePushEvent;
 import gwl.mapper.TimelineMapper;
 import gwl.mapper.UserMapper;
 import gwl.pojo.DTO.TimelineDTO;
+import gwl.pojo.VO.TimelineContentVO;
+import gwl.pojo.VO.TimelineVO;
 import gwl.service.CommonService;
 import gwl.service.TimelineService;
 import gwl.service.UserService;
@@ -63,6 +67,8 @@ public class TimelineServiceImpl implements TimelineService {
     private CommonService commonService;
     @Autowired
     private StringRedisTemplate redis;
+    @Autowired
+    private AWSConstant aws;
     @Value("${fcm.server-key}")
     private String serverKey;
 
@@ -84,27 +90,37 @@ public class TimelineServiceImpl implements TimelineService {
                 .userId(timelineDTO.getUserId())
                 .context(timelineDTO.getContext())
                 .imgUrls(null)
-                .createTime(timelineDTO.getCreateTime())
                 .build();
-        Long postId = timelineMapper.postTimeline(timelineContent);
+        timelineMapper.postTimeline(timelineContent);
+        Long postId = timelineContent.getId();
+        TimelineVO timelineVO = timelineMapper.getTimelineContent(postId);
+
+        // timeline里先给自己加记录
+        timelineMapper.addTimeline(BaseContext.getCurrentId(), postId, timelineVO.getCreatedAt());
+
         String publisherName = userMapper.getByUserId(timelineDTO.getUserId()).getUsername();
         String key = "timeline:post:" + postId;
         Map<String, String> timelineMap = new HashMap<>();
+        List<String> imgUrls = new ArrayList<>();
         // 存图片到S3
         if (timelineDTO.getFiles() != null) {
             for (MultipartFile file : timelineDTO.getFiles()) {
-                commonService.uploadToS3(file, file.getName(), "timeline/" + postId);
+                String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
+                String randomId = UUID.randomUUID().toString();
+                String imgUrl = aws.getUrl() + "timeline/" + postId + "/" + randomId + extension;
+                String uploadKey = "timeline/" + postId + "/" + randomId + extension;
+                commonService.uploadToS3(file, uploadKey);
+                imgUrls.add(imgUrl);
             }
-            // 拿到s3的图片url,更新mysql
-            List<String> imgUrls = commonService.getS3ImgUrls("timeline/" + postId);
-            timelineMapper.updateTimelineImgs(imgUrls);
+            // 更新mysql的img_urls
+            timelineMapper.updateTimelineImgs(imgUrls, postId);
             timelineMap.put("imgUrls", JSON.toJSONString(imgUrls));
         }
         // 写入redis timelinecontent
         timelineMap.put("postId", postId.toString());
         timelineMap.put("userId", timelineDTO.getUserId().toString());
         timelineMap.put("context", timelineDTO.getContext());
-        timelineMap.put("createTime", timelineDTO.getCreateTime());
+
         redis.opsForHash().putAll(key, timelineMap);
 
         // 获取好友列表 推送kafka
@@ -125,7 +141,9 @@ public class TimelineServiceImpl implements TimelineService {
                     .postId(postId)
                     .fanIds(batch)
                     .publisherName(publisherName)
+                    .createdAt(timelineVO.getCreatedAt())
                     .content(timelineDTO.getContext()).build();
+
             kafkaTemplate.send(
                     "timeline_publish",
                     timelinePushEvent);
@@ -142,12 +160,12 @@ public class TimelineServiceImpl implements TimelineService {
     @Override
     @KafkaListener(topics = "timeline_publish", groupId = "timeline-group")
     public void onTimelinePush(@Payload TimelinePushEvent event) throws IOException, FirebaseMessagingException {
-        log.info("消费消息");
         // 推送给多个好友
         Long postId = event.getPostId();
         List<String> fanIds = event.getFanIds();
         String publisherName = event.getPublisherName();
         String content = event.getContent();
+        String createdAt = event.getCreatedAt();
 
         if (fanIds == null || fanIds.isEmpty()) {
             return;
@@ -162,6 +180,9 @@ public class TimelineServiceImpl implements TimelineService {
 
             // 控制时间线长度，比如最多 1000 条
             redis.opsForList().trim(key, 0, 999);
+
+            // 数据库添加timeline
+            timelineMapper.addTimeline(Long.valueOf(fanId), postId, createdAt);
 
             // 发送 iOS / Android 推送通知
             sendPushToUser(fanId, publisherName, postId, content);
@@ -180,6 +201,7 @@ public class TimelineServiceImpl implements TimelineService {
             return;
         } else {
             log.info("推送给用户:{}", fanId);
+
         }
 
         // iOS
@@ -198,28 +220,9 @@ public class TimelineServiceImpl implements TimelineService {
 
     public void sendFCMPush(String deviceToken, String title, String content)
             throws IOException, FirebaseMessagingException {
-        // OkHttpClient client = new OkHttpClient();
-
-        // JSONObject message = new JSONObject();
-        // message.put("to", deviceToken);
-
-        // JSONObject notification = new JSONObject();
-        // notification.put("title", title);
-        // notification.put("body", body);
-
-        // message.put("notification", notification);
-
-        // RequestBody requestBody = RequestBody.create(
-        // message.toString(),
-        // MediaType.parse("application/json; charset=utf-8"));
-
-        // okhttp3.Request request = new okhttp3.Request.Builder()
-        // .url(fcmUrl)
-        // .addHeader("Authorization", "key=" + serverKey)
-        // .post(requestBody)
-        // .build();
         Message message = Message.builder()
                 .setToken(deviceToken)
+                .putData("type", "gettimeline")
                 .setNotification(
                         Notification.builder()
                                 .setTitle(title)
@@ -229,5 +232,18 @@ public class TimelineServiceImpl implements TimelineService {
 
         String response = FirebaseMessaging.getInstance().send(message);
         System.out.println("FCM Response: " + response);
+    }
+
+    /**
+     * 获取帖子(刷新)
+     */
+    @Override
+    public List<TimelineVO> getTimelinePost() {
+        List<TimelineVO> timelineVOs = new ArrayList<>();
+        List<Long> timelineIds = timelineMapper.getTimeline(BaseContext.getCurrentId());
+        for (Long timelineId : timelineIds) {
+            timelineVOs.add(timelineMapper.getTimelineContent(timelineId));
+        }
+        return timelineVOs;
     }
 }

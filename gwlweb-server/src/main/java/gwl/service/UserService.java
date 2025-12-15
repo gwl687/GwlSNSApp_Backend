@@ -81,10 +81,4 @@ public interface UserService {
    */
   void saveGroupMessage(Message msg);
 
-  /**
-   * 上传头像
-   * @param file
-   * @return
-   */
-  public Boolean uploadToS3(MultipartFile file,String type) throws IOException;
 }
