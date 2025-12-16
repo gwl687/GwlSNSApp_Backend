@@ -13,6 +13,7 @@ import org.apache.ibatis.annotations.Update;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
 import gwl.entity.TimelineContent;
+import gwl.entity.timeline.TimelineUserLike;
 import gwl.pojo.DTO.TimelineDTO;
 import gwl.pojo.VO.TimelineContentVO;
 import gwl.pojo.VO.TimelineVO;
@@ -55,11 +56,12 @@ public interface TimelineMapper {
     TimelineVO getTimelineContent(Long timelineId, Long currentUserId);
 
     /**
-     * 查询是否被我点击了喜欢
+     * 点击喜欢的刷盘
      * 
      * @param imgUrls
      * @param postId
      */
+    void flushLikeToDB(TimelineUserLike timelineUserLike);
 
     /**
      * 更新mysql里图片url

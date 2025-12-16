@@ -2,14 +2,20 @@ package gwl.service.Impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import javax.print.DocFlavor.STRING;
 import javax.print.attribute.standard.MediaTray;
 
+import org.apache.ibatis.reflection.wrapper.BaseWrapper;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,11 +39,14 @@ import gwl.constant.AWSConstant;
 import gwl.context.BaseContext;
 import gwl.entity.TimelineContent;
 import gwl.entity.User;
+import gwl.entity.event.TimelineLikeHitEvent;
 import gwl.entity.event.TimelinePublishEvent;
 import gwl.entity.event.TimelinePushEvent;
+import gwl.entity.timeline.TimelineUserLike;
 import gwl.mapper.TimelineMapper;
 import gwl.mapper.UserMapper;
 import gwl.pojo.DTO.TimelineDTO;
+import gwl.pojo.VO.LikeUserVO;
 import gwl.pojo.VO.TimelineContentVO;
 import gwl.pojo.VO.TimelineVO;
 import gwl.service.CommonService;
@@ -44,6 +54,7 @@ import gwl.service.TimelineService;
 import gwl.service.UserService;
 import io.micrometer.core.ipc.http.HttpSender.Request;
 import io.micrometer.observation.Observation.CheckedRunnable;
+import io.swagger.v3.oas.models.security.SecurityScheme.In;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -94,7 +105,7 @@ public class TimelineServiceImpl implements TimelineService {
         timelineMapper.postTimeline(timelineContent);
         Long postId = timelineContent.getId();
         TimelineVO timelineVO = timelineMapper.getTimelineContent(postId, BaseContext.getCurrentId());
-
+        // mysql操作
         // timeline里先给自己加记录
         timelineMapper.addTimeline(BaseContext.getCurrentId(), postId, timelineVO.getCreatedAt());
 
@@ -119,7 +130,9 @@ public class TimelineServiceImpl implements TimelineService {
         // 写入redis timelinecontent
         timelineMap.put("postId", postId.toString());
         timelineMap.put("userId", timelineDTO.getUserId().toString());
+        timelineMap.put("userName", publisherName);
         timelineMap.put("context", timelineDTO.getContext());
+        timelineMap.put("createdAt", timelineVO.getCreatedAt());
 
         redis.opsForHash().putAll(key, timelineMap);
 
@@ -181,7 +194,7 @@ public class TimelineServiceImpl implements TimelineService {
             // 控制时间线长度，比如最多 1000 条
             redis.opsForList().trim(key, 0, 999);
 
-            // 数据库添加timeline
+            // 数据库更新user的timeline表
             timelineMapper.addTimeline(Long.valueOf(fanId), postId, createdAt);
 
             // 发送 iOS / Android 推送通知
@@ -214,10 +227,174 @@ public class TimelineServiceImpl implements TimelineService {
         }
     }
 
+    /**
+     * 获取帖子(刷新)
+     */
+    @Override
+    public List<TimelineVO> getTimelinePost() {
+        List<TimelineVO> timelineVOs = new ArrayList<>();
+        List<Long> timelineIds = timelineMapper.getTimeline(BaseContext.getCurrentId());
+        for (Long timelineId : timelineIds) {
+            // redis里有数据就取redis的
+            if (redis.hasKey("timeline:post:" + timelineId)) {
+                Map<Object, Object> map = redis.opsForHash().entries("timeline:post:" + timelineId);
+                log.info("{timelineMap=}", map);
+                String userName = map.get("userName").toString();
+                String context = map.get("context").toString();
+                Object imgUrlsObj = map.get("imgUrls");
+                List<String> imgUrls = imgUrlsObj == null
+                        ? Collections.emptyList()
+                        : JSON.parseArray(imgUrlsObj.toString(), String.class);
+                String createdAt = map.get("createdAt").toString();
+                Integer totalLikedCount = Integer
+                        .parseInt(redis.opsForValue().get("timeline:like:totalcount:" + timelineId));
+                Map<Long, Integer> userLikeMap = redis.opsForHash().entries("timeline:like:user:" + timelineId)
+                        .entrySet()
+                        .stream()
+                        // 按 value 倒序
+                        .sorted((e1, e2) -> {
+                            int v1 = ((Number) e1.getValue()).intValue();
+                            int v2 = ((Number) e2.getValue()).intValue();
+                            return Integer.compare(v2, v1);
+                        })
+                        // 只取前 30
+                        .limit(30)
+                        // 收集成 Map
+                        .collect(Collectors.toMap(
+                                e -> Long.parseLong(e.getKey().toString()),
+                                e -> ((Number) e.getValue()).intValue(),
+                                (a, b) -> a,
+                                LinkedHashMap::new // 保持排序后的顺序
+                        ));
+                List<LikeUserVO> likeUserVOs = new ArrayList<>();
+                for (Map.Entry<Long, Integer> entry : userLikeMap.entrySet()) {
+                    Long userId = entry.getKey();
+                    Integer likeCount = entry.getValue();
+                    LikeUserVO likeUserVO = LikeUserVO.builder()
+                            .userId(userId)
+                            .avatarUrl(redis.opsForValue().get("useravatarurl" + userId))
+                            .userLikeCount(likeCount)
+                            .build();
+                    likeUserVOs.add(likeUserVO);
+                }
+                // Integer likedByMeCount = map.get("createdAt").toString();
+                TimelineVO timelineVO = TimelineVO.builder()
+                        .userName(userName)
+                        .context(context)
+                        .imgUrls(imgUrls)
+                        .createdAt(createdAt)
+                        .totalLikeCount(totalLikedCount)
+                        .build();
+                timelineVOs.add(timelineVO);
+            } else {
+                log.info("没有取到redis里的timeline数据，查询mysql");
+                timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
+            }
+        }
+        return timelineVOs;
+    }
+
+    /**
+     * 给帖子点赞
+     */
+    @Override
+    public void likeHit(Long timelineId) {
+        TimelineLikeHitEvent timelineLikeHitEvent = TimelineLikeHitEvent.builder()
+                .timelineId(timelineId)
+                .userId(BaseContext.getCurrentId())
+                .build();
+        kafkaTemplate.send(
+                "timeline_likehit",
+                timelineLikeHitEvent);
+    }
+
+    /**
+     * kafka点赞消费者
+     */
+    @Override
+    @KafkaListener(topics = "timeline_likehit", groupId = "timeline-group")
+    public void onLikeHit(@Payload TimelineLikeHitEvent event) {
+        Long timelineId = event.getTimelineId();
+        Long userId = event.getUserId();
+
+        // 帖子总点赞数 +1
+        Long totalLikeCount = redis.opsForValue()
+                .increment("timeline:like:totalcount:" + timelineId);
+
+        // 用户对该帖的点赞数 +1
+        redis.opsForHash()
+                .increment("timeline:like:user:" + timelineId,
+                        userId.toString(),
+                        1);
+
+        // 标记为 dirty（发生过变化）
+        redis.opsForSet()
+                .add("dirty:timeline:set", timelineId.toString());
+
+        // 触发阈值刷（例如 300）
+        if (totalLikeCount != null && totalLikeCount % 300 == 0) {
+            TimelineUserLike timelineUserLike = TimelineUserLike.builder()
+                    .timelineId(timelineId)
+                    .userLikeCount(redis.opsForHash()
+                            .entries("timeline:like:user:" + timelineId)
+                            .entrySet()
+                            .stream()
+                            .collect(Collectors.toMap(
+                                    e -> Long.valueOf(e.getKey().toString()),
+                                    e -> Integer.valueOf(e.getValue().toString()))))
+                    .build();
+            timelineMapper.flushLikeToDB(timelineUserLike);
+            // 已刷库，移出 dirty
+            redis.opsForSet()
+                    .remove("dirty:timeline:set", timelineId);
+        }
+    }
+
+    // 每分钟刷盘点赞的脏数据
+    @Scheduled(fixedDelayString = "60s")
+    @Override
+    public void flushTimelineLikeToMySQL() {
+        Set<Long> dirtyTimelineIds = redis.opsForSet()
+                .members("dirty:timeline:set").stream().map(Long::valueOf).collect(Collectors.toSet());
+        for (Long dirtyTimeline : dirtyTimelineIds) {
+            TimelineUserLike timelineUserLike = TimelineUserLike.builder()
+                    .timelineId(dirtyTimeline)
+                    .userLikeCount(redis.opsForHash()
+                            .entries("timeline:like:user:" + dirtyTimeline)
+                            .entrySet()
+                            .stream()
+                            .collect(Collectors.toMap(
+                                    e -> Long.valueOf(e.getKey().toString()),
+                                    e -> Integer.valueOf(e.getValue().toString()))))
+                    .build();
+
+            timelineMapper.flushLikeToDB(timelineUserLike);
+            // 清除脏数据
+            redis.opsForSet()
+                    .remove("dirty:timeline:set", dirtyTimeline);
+        }
+    }
+
+    /**
+     * ios推送
+     * 
+     * @param deviceToken
+     * @param title
+     * @param body
+     */
     public void sendAPNsPush(String deviceToken, String title, String body) {
         //
     }
 
+    /**
+     * android推送
+     * 
+     * @param deviceToken
+     * @param title
+     * @param content
+     * @throws IOException
+     * @throws FirebaseMessagingException
+     */
     public void sendFCMPush(String deviceToken, String title, String content)
             throws IOException, FirebaseMessagingException {
         Message message = Message.builder()
@@ -232,18 +409,5 @@ public class TimelineServiceImpl implements TimelineService {
 
         String response = FirebaseMessaging.getInstance().send(message);
         System.out.println("FCM Response: " + response);
-    }
-
-    /**
-     * 获取帖子(刷新)
-     */
-    @Override
-    public List<TimelineVO> getTimelinePost() {
-        List<TimelineVO> timelineVOs = new ArrayList<>();
-        List<Long> timelineIds = timelineMapper.getTimeline(BaseContext.getCurrentId());
-        for (Long timelineId : timelineIds) {
-            timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
-        }
-        return timelineVOs;
     }
 }

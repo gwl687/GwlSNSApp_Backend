@@ -18,7 +18,7 @@ public class TimelineVO {
     String createdAt;
     List<String> imgUrls;
     //点赞总数
-    Long totalLikeCount;
+    Integer totalLikeCount;
     Integer likedByMeCount;
     List<LikeUserVO> topLikeUsers;
 }

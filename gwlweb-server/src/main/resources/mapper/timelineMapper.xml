@@ -68,7 +68,27 @@
             ON tl.user_id = u.id
         WHERE tl.timeline_id = #{timeline_id}
         ORDER BY tl.like_count DESC
-        LIMIT 20
+        LIMIT 30
     </select>
+
+    <!-- 刷盘帖子对应用户点赞数 -->
+    <insert id="flushLikeToDB" parameterType="gwl.entity.timeline.TimelineUserLike">
+        INSERT INTO timeline_like
+            (timeline_id, user_id, like_count)
+        VALUES
+    <foreach collection="userLikeCount.entrySet()"
+             item="entry"
+             separator=",">
+            (
+                #{timelineId},
+                #{entry.key},
+                #{entry.value}
+            )
+    </foreach>
+        ON DUPLICATE KEY UPDATE
+            like_count = like_count + VALUES(like_count),
+            updated_at = CURRENT_TIMESTAMP
+    </insert>
+
 
 </mapper>

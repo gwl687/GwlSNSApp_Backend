@@ -1,6 +1,4 @@
-package gwl.pojo.VO;
-
-
+package gwl.pojo.DTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,8 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class LikeUserVO {
-    private Long userId; 
-    private String avatarUrl; 
-    private Integer userLikeCount; 
+public class TimelineHitLikeDTO {
+    Long timelineId;
+    Long userId;
 }

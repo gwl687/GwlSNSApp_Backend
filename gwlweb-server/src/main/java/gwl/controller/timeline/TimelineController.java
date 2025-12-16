@@ -3,6 +3,7 @@ package gwl.controller.timeline;
 import java.io.IOException;
 import java.util.List;
 
+import org.checkerframework.checker.units.qual.t;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import gwl.entity.timeline.TimelineUserLike;
 import gwl.pojo.DTO.TimelineDTO;
+import gwl.pojo.DTO.TimelineHitLikeDTO;
 import gwl.pojo.VO.TimelineVO;
 import gwl.result.Result;
 import gwl.service.TimelineService;
@@ -54,5 +57,20 @@ public class TimelineController {
     @GetMapping(path = "gettimelinepost", produces = "application/json")
     Result<List<TimelineVO>> getTimelinePost() {
         return Result.success(timelineService.getTimelinePost());
+    }
+
+    /**
+     * 给帖子点赞
+     * 
+     * @return
+     */
+    @PostMapping(path = "timelinehitlike", produces = "application/json")
+    Result<String> timelineHitLike(@RequestBody Long timelineId) {
+        try {
+            timelineService.likeHit(timelineId);
+        } catch (Exception e) {
+            return Result.error(e.toString());
+        }
+        return Result.success("hitlike succees!");
     }
 }
