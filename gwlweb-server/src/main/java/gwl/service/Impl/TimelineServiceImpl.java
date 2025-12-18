@@ -290,13 +290,45 @@ public class TimelineServiceImpl implements TimelineService {
      */
     @Override
     public void likeHit(Long timelineId) {
-        TimelineLikeHitEvent timelineLikeHitEvent = TimelineLikeHitEvent.builder()
-                .timelineId(timelineId)
-                .userId(BaseContext.getCurrentId())
-                .build();
-        kafkaTemplate.send(
-                "timeline_likehit",
-                timelineLikeHitEvent);
+        Long userId = BaseContext.getCurrentId();
+        // 帖子总点赞数 +1
+        Long totalLikeCount = redis.opsForValue()
+                .increment("timeline:like:totalcount:" + timelineId);
+
+        // 用户对该帖的点赞数 +1
+        redis.opsForHash()
+                .increment("timeline:like:user:" + timelineId,
+                        userId.toString(),
+                        1);
+
+        // 标记为 dirty（发生过变化）
+        redis.opsForSet()
+                .add("dirty:timeline:set", timelineId.toString());
+
+        // 触发阈值刷（例如 300）
+        if (totalLikeCount != null && totalLikeCount % 300 == 0) {
+            TimelineUserLike timelineUserLike = TimelineUserLike.builder()
+                    .timelineId(timelineId)
+                    .userLikeCount(redis.opsForHash()
+                            .entries("timeline:like:user:" + timelineId)
+                            .entrySet()
+                            .stream()
+                            .collect(Collectors.toMap(
+                                    e -> Long.valueOf(e.getKey().toString()),
+                                    e -> Integer.valueOf(e.getValue().toString()))))
+                    .build();
+            timelineMapper.flushLikeToDB(timelineUserLike);
+            // 已刷库，移出 dirty
+            redis.opsForSet()
+                    .remove("dirty:timeline:set", timelineId);
+        }
+        // TimelineLikeHitEvent timelineLikeHitEvent = TimelineLikeHitEvent.builder()
+        //         .timelineId(timelineId)
+        //         .userId(BaseContext.getCurrentId())
+        //         .build();
+        // kafkaTemplate.send(
+        //         "timeline_likehit",
+        //         timelineLikeHitEvent);
     }
 
     /**
