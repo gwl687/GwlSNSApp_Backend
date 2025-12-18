@@ -64,8 +64,8 @@ public class TimelineController {
      * 
      * @return
      */
-    @PostMapping(path = "timelinehitlike", produces = "application/json")
-    Result<String> timelineHitLike(@RequestBody Long timelineId) {
+    @PostMapping(path = "hitlike", produces = "application/json")
+    Result<String> timelinehitLike(@RequestBody Long timelineId) {
         try {
             timelineService.likeHit(timelineId);
         } catch (Exception e) {

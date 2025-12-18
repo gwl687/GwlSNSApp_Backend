@@ -20,5 +20,6 @@ public class TimelineVO {
     //点赞总数
     Integer totalLikeCount;
     Integer likedByMeCount;
+    Long timelineId;
     List<LikeUserVO> topLikeUsers;
 }

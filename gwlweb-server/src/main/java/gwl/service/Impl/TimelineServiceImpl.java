@@ -47,21 +47,10 @@ import gwl.mapper.TimelineMapper;
 import gwl.mapper.UserMapper;
 import gwl.pojo.DTO.TimelineDTO;
 import gwl.pojo.VO.LikeUserVO;
-import gwl.pojo.VO.TimelineContentVO;
 import gwl.pojo.VO.TimelineVO;
 import gwl.service.CommonService;
 import gwl.service.TimelineService;
-import gwl.service.UserService;
-import io.micrometer.core.ipc.http.HttpSender.Request;
-import io.micrometer.observation.Observation.CheckedRunnable;
-import io.swagger.v3.oas.models.security.SecurityScheme.In;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.exception.SdkClientException;
 
 @Service
 @Slf4j
@@ -161,11 +150,6 @@ public class TimelineServiceImpl implements TimelineService {
                     "timeline_publish",
                     timelinePushEvent);
             log.info("推送消息");
-            // JSON.toJSONString(Map.of(
-            // "postId", postId,
-            // "fanIds", batch,
-            // "publisherName", publisherName,
-            // "content", timelineDTO.getContext())));
         }
     }
 
@@ -246,43 +230,50 @@ public class TimelineServiceImpl implements TimelineService {
                         ? Collections.emptyList()
                         : JSON.parseArray(imgUrlsObj.toString(), String.class);
                 String createdAt = map.get("createdAt").toString();
-                Integer totalLikedCount = Integer
-                        .parseInt(redis.opsForValue().get("timeline:like:totalcount:" + timelineId));
+                String totalLikeStr = redis.opsForValue().get("timeline:like:totalcount:" + timelineId);
+                Integer totalLikedCount = totalLikeStr == null ? 0 : Integer.parseInt(totalLikeStr);
                 Map<Long, Integer> userLikeMap = redis.opsForHash().entries("timeline:like:user:" + timelineId)
                         .entrySet()
                         .stream()
                         // 按 value 倒序
                         .sorted((e1, e2) -> {
-                            int v1 = ((Number) e1.getValue()).intValue();
-                            int v2 = ((Number) e2.getValue()).intValue();
+                            int v1 = Integer.parseInt(e1.getValue().toString());
+                            int v2 = Integer.parseInt(e2.getValue().toString());
                             return Integer.compare(v2, v1);
                         })
-                        // 只取前 30
-                        .limit(30)
+                        // 只取前 20
+                        .limit(20)
                         // 收集成 Map
                         .collect(Collectors.toMap(
                                 e -> Long.parseLong(e.getKey().toString()),
-                                e -> ((Number) e.getValue()).intValue(),
+                                e -> Integer.parseInt(e.getValue().toString()),
                                 (a, b) -> a,
                                 LinkedHashMap::new // 保持排序后的顺序
                         ));
                 List<LikeUserVO> likeUserVOs = new ArrayList<>();
+                Integer likedByMeCount = 0;
                 for (Map.Entry<Long, Integer> entry : userLikeMap.entrySet()) {
                     Long userId = entry.getKey();
                     Integer likeCount = entry.getValue();
                     LikeUserVO likeUserVO = LikeUserVO.builder()
                             .userId(userId)
-                            .avatarUrl(redis.opsForValue().get("useravatarurl" + userId))
+                            .avatarUrl(redis.opsForValue().get("useravatarurl:" + userId))
                             .userLikeCount(likeCount)
                             .build();
+                    if (userId == BaseContext.getCurrentId()) {
+                        likedByMeCount = likeCount;
+                    }
                     likeUserVOs.add(likeUserVO);
                 }
-                // Integer likedByMeCount = map.get("createdAt").toString();
+
                 TimelineVO timelineVO = TimelineVO.builder()
+                        .timelineId(timelineId)
+                        .topLikeUsers(likeUserVOs)
                         .userName(userName)
                         .context(context)
                         .imgUrls(imgUrls)
                         .createdAt(createdAt)
+                        .likedByMeCount(likedByMeCount)
                         .totalLikeCount(totalLikedCount)
                         .build();
                 timelineVOs.add(timelineVO);

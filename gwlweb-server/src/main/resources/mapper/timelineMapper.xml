@@ -68,7 +68,7 @@
             ON tl.user_id = u.id
         WHERE tl.timeline_id = #{timeline_id}
         ORDER BY tl.like_count DESC
-        LIMIT 30
+        LIMIT 20
     </select>
 
     <!-- 刷盘帖子对应用户点赞数 -->

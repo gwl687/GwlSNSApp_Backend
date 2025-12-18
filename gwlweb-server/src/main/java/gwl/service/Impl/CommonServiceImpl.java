@@ -44,8 +44,8 @@ public class CommonServiceImpl implements CommonService {
         // 拼接公开URL
         String avartarUrl = aws.getUrl() + key;
         // 如果上传的是头像，存redis
-        if (key.startsWith("avartar/")) {
-             System.out.println("上传头像: " + key);
+        if (key.startsWith("avatar/")) {
+            System.out.println("上传头像: " + key);
             templateRedis.opsForValue().set("useravatarurl:" + BaseContext.getCurrentId(), avartarUrl);
         }
         System.out.println("上传成功: " + key);

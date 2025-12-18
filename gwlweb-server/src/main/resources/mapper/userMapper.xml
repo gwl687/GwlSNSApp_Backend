@@ -27,5 +27,6 @@
     resultType="gwl.entity.GroupChat"> SELECT g.id AS groupId, g.name AS groupName, g.owner_id AS
     ownerId, g.avatar_url AS avatarUrl, GROUP_CONCAT(m.user_id) AS memberIds FROM chatgroups g LEFT
     JOIN group_members m ON g.id = m.group_id WHERE g.id = #{id} GROUP BY g.id; </select>
-
+  <!-- 更新用户信息 -->
+   
 </mapper>
