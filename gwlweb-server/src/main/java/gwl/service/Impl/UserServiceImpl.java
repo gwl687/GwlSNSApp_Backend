@@ -1,5 +1,6 @@
 package gwl.service.Impl;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -7,14 +8,13 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import gwl.components.NettyHandlers.DispatcherHandler;
+import com.google.firebase.messaging.FirebaseMessagingException;
 import gwl.constant.MessageConstant;
 import gwl.constant.StatusConstant;
 import gwl.context.BaseContext;
 import gwl.entity.GroupChat;
 import gwl.mapper.UserMapper;
 import gwl.pojo.CommonPojo.Message;
-import gwl.pojo.CommonPojo.WebCommand;
 import gwl.pojo.DTO.AddFriendToChatListDTO;
 import gwl.pojo.DTO.CreateGroupChatDTO;
 import gwl.pojo.DTO.UserInfoDTO;
@@ -23,12 +23,9 @@ import gwl.pojo.VO.GroupChatVO;
 import gwl.pojo.VO.GroupMessagesVO;
 import gwl.pojo.entity.ChatFriend;
 import gwl.pojo.entity.ChatListId;
+import gwl.service.CommonService;
 import gwl.service.UserService;
-import gwl.util.CommonUtil;
-import io.netty.channel.Channel;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Service
 @Slf4j
@@ -38,6 +35,12 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private StringRedisTemplate stringRedis;
+
+    @Autowired
+    private CommonService commonService;
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     @Override
     public gwl.entity.User userLogin(UserLoginDTO userLoginDTO) {
@@ -119,14 +122,14 @@ public class UserServiceImpl implements UserService {
                         .ownerId(groupChat.getOwnerId())
                         .memberIds(memberIds)
                         // 先传默认头像,测试用
-                        .avatarUrl("https://i.pravatar.cc/150?img=1")
+                        .avatarUrl("https://i.pravatar.cc/150?img=3")
                         // .avatarUrl(groupChat.getAvatarUrl())
                         .build();
                 result.add(groupChatVO);
-            } else {
+            } else { // 是好友
                 ChatFriend chatFriend = userMapper.getChatFriendByChatId(chatListId.getId());
                 // 先传默认头像,测试用
-                chatFriend.setAvatarurl("https://i.pravatar.cc/150?img=1");
+                chatFriend.setAvatarurl("https://i.pravatar.cc/150?img=3");
                 result.add(chatFriend);
             }
         }
@@ -135,6 +138,9 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 创建群聊
+     * 
+     * @throws IOException
+     * @throws FirebaseMessagingException
      */
     @Override
     public GroupChatVO createGroupChat(CreateGroupChatDTO createGroupChatDTO) {
@@ -167,25 +173,24 @@ public class UserServiceImpl implements UserService {
                 .avatarUrl(groupchat.getAvatarUrl())
                 .build();
         userMapper.insertGroupChatMember(groupChatVO);
-        Long groupId = groupchat.getGroupId();
+        // 添加每个群成员的聊天列表
+        for (Long userId : groupChatMembers) {
+            AddFriendToChatListDTO addFriendToChatListDTO = AddFriendToChatListDTO.builder()
+                    .userId(userId)
+                    .friendId(groupchat.getGroupId())
+                    .isGroup(true).build();
+            userMapper.addFriendToChatList(addFriendToChatListDTO);
+        }
 
-        // 向被拉到群里的用户发message,更新聊天列表(群名称)
-        try {
-            for (Long id : groupChatMembers) {
-                if (id == BaseContext.getCurrentId()) {
-                    continue; // 不发给自己
-                }
-                Channel toChannel = DispatcherHandler.userMap.get(id);
-                WebCommand webCommand = WebCommand.builder()
-                        .fromUser(BaseContext.getCurrentId())
-                        .toUser(id)
-                        .type("joinGroupChat_" + groupId + "_" + groupName)
-                        .build();
-                String sendMessage = CommonUtil.mapper.writeValueAsString(webCommand);
-                toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
+        // android推送
+        for (Long id : groupChatMembers) {
+            String token = redis.opsForValue().get("push_token:" + id);
+            if (token.startsWith("android:")) {
+                commonService.sendFCMPush(token.substring(8), "chatgroup invite",
+                        owner.getUsername() + "invite you to join a chat group", "joingroup");
+            } else {
+
             }
-        } catch (Exception e) {
-            log.error("Exception occurred", e);
         }
         log.info("用户" + BaseContext.getCurrentId() + "创建群聊");
         return groupChatVO;

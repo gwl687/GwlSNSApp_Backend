@@ -9,14 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-
-import javax.print.DocFlavor.STRING;
-import javax.print.attribute.standard.MediaTray;
-
-import org.apache.ibatis.reflection.wrapper.BaseWrapper;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -26,21 +19,17 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
-
 import gwl.components.ChannelManager;
 import gwl.constant.AWSConstant;
 import gwl.context.BaseContext;
 import gwl.entity.TimelineContent;
 import gwl.entity.User;
 import gwl.entity.event.TimelineLikeHitEvent;
-import gwl.entity.event.TimelinePublishEvent;
 import gwl.entity.event.TimelinePushEvent;
 import gwl.entity.timeline.TimelineUserLike;
 import gwl.mapper.TimelineMapper;
@@ -398,16 +387,6 @@ public class TimelineServiceImpl implements TimelineService {
         }
     }
 
-    /**
-     * ios推送
-     * 
-     * @param deviceToken
-     * @param title
-     * @param body
-     */
-    public void sendAPNsPush(String deviceToken, String title, String body) {
-        //
-    }
 
     /**
      * android推送

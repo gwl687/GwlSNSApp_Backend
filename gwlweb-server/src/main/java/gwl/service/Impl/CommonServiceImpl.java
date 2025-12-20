@@ -1,13 +1,21 @@
 package gwl.service.Impl;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.checkerframework.checker.units.qual.t;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
+
 import gwl.constant.AWSConstant;
 import gwl.context.BaseContext;
 import gwl.service.CommonService;
@@ -76,5 +84,32 @@ public class CommonServiceImpl implements CommonService {
             }
         });
         return urls;
+    }
+
+    /**
+     * android推送
+     * 
+     * @param deviceToken
+     * @param title
+     * @param content
+     * @throws IOException
+     * @throws FirebaseMessagingException
+     */
+    public void sendFCMPush(String deviceToken, String title, String content, String type) {
+        Message message = Message.builder()
+                .setToken(deviceToken)
+                .putData("type", type)
+                .setNotification(
+                        Notification.builder()
+                                .setTitle(title)
+                                .setBody(content)
+                                .build())
+                .build();
+        try {
+            String response = FirebaseMessaging.getInstance().send(message);
+            System.out.println("FCM Response: " + response);
+        } catch (Exception e) {
+            log.error("FCM push error, token={}", deviceToken, e);
+        }
     }
 }

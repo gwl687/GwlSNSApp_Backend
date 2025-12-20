@@ -64,6 +64,7 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
             }
         } else { // 群聊消息
             log.info("收到群聊消息: " + msg.getContent());
+            userService.saveGroupMessage(msg);
             List<Long> memberIds = userMapper.getGroupMemberIds(toUser);
             boolean isSaved = false;
             for (Long memberId : memberIds) {
@@ -74,8 +75,7 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
                         toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
                         log.info("用户" + msg.getFromUser() + "说: " + content);
                     } else if (isSaved == false) { // 给不在线用户
-                        userService.saveGroupMessage(msg);
-                        isSaved = true;
+                        log.info("用户" + memberId + "不在线");
                     }
                 }
                 // log.info("用户" + toUser + "不在线,发送消息到服务器后端数据库暂存");

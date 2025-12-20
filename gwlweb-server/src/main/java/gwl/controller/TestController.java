@@ -163,7 +163,8 @@ public class TestController {
     Result<GroupChatVO> createGroupChat(
             @org.springframework.web.bind.annotation.RequestBody CreateGroupChatDTO createGroupChatDTO) {
         log.info("创建群：{}", createGroupChatDTO);
-        GroupChatVO groupChatVO = userService.createGroupChat(createGroupChatDTO);
+        GroupChatVO groupChatVO = new GroupChatVO();
+        groupChatVO = userService.createGroupChat(createGroupChatDTO);
         return Result.success(groupChatVO);
     }
 

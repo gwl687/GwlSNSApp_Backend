@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.firebase.messaging.FirebaseMessagingException;
+
 public interface CommonService {
     /**
      * 上传到S3
@@ -13,10 +15,23 @@ public interface CommonService {
      */
     Boolean uploadToS3(MultipartFile file, String key)
             throws IOException;
+
     /**
      * 获取s3的img地址列表
+     * 
      * @param path
      * @return
      */
     public List<String> getS3ImgUrls(String path);
+
+    /**
+     * android推送
+     * 
+     * @param deviceToken
+     * @param title
+     * @param content
+     * @throws IOException
+     * @throws FirebaseMessagingException
+     */
+    void sendFCMPush(String deviceToken, String title, String content, String type);
 }

@@ -1,13 +1,18 @@
 package gwl.pojo.DTO;
 
-import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AddFriendToChatListDTO {
-    @Schema(description = "朋友或群的id")
+    @Schema(description = "用户id")
     private Long userId;
     @Schema(description = "朋友或群的id")
     private Long friendId;

@@ -121,7 +121,7 @@ public interface UserMapper {
     /**
      * 添加朋友或群到聊天列表
      */
-    @Insert("insert into chatlist (userId, friendId ,isgroup) values (#{id},#{friendId},#{isGroup})")
+    @Insert("insert into chatlist (user_id, friend_id ,isgroup) values (#{userId},#{friendId},#{isGroup})")
     void addFriendToChatList(AddFriendToChatListDTO addFriendToChatListDTO);
 
     /*
