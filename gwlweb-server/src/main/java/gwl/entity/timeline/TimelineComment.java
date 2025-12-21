@@ -1,5 +1,7 @@
 package gwl.entity.timeline;
 
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,5 +16,5 @@ public class TimelineComment {
     Long timelineId;
     Long userId;
     String comment;
-    String createdAt;
+    LocalDateTime createdAt;
 }

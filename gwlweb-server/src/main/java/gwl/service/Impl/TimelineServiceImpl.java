@@ -21,6 +21,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.alibaba.fastjson2.JSON;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
@@ -202,7 +203,8 @@ public class TimelineServiceImpl implements TimelineService {
         // }
         // Android
         if (token.startsWith("android:")) {
-            sendFCMPush(token.substring(8), title, content);
+            // sendFCMPush(token.substring(8), title, content);
+            commonService.sendFCMPush(token.substring(8), title, content, "gettimeline");
         }
     }
 
@@ -262,8 +264,28 @@ public class TimelineServiceImpl implements TimelineService {
                     likeUserVOs.add(likeUserVO);
                 }
                 // 用户评论数据
-                List<TimelineComment> timelineComments = timelineMapper.getComments(timelineId);
+                String key = "timelinecomment:" + timelineId;
+                List<String> jsonList = redis.opsForList().range(key, 0, 9);
+                List<TimelineComment> timelineComments = new ArrayList<>();
 
+                for (String json : jsonList) {
+                    try {
+                        JsonNode node = CommonUtil.mapper.readTree(json);
+                        TimelineComment comment = new TimelineComment();
+                        comment.setCommentId(node.get("commentId").asLong()); 
+                        comment.setUserId(node.get("userId").asLong());
+                        comment.setComment(node.get("comment").asText());
+                        comment.setCreatedAt(
+                                LocalDateTime.parse(node.get("createdAt").asText()));
+                        comment.setTimelineId(timelineId);
+
+                        timelineComments.add(comment);
+                    } catch (Exception e) {
+                        log.error("解析 redis 评论失败: {}", json, e);
+                    }
+                }
+                //希望评论下方是新的
+                Collections.reverse(timelineComments);
                 TimelineVO timelineVO = TimelineVO.builder()
                         .timelineId(timelineId)
                         .topLikeUsers(likeUserVOs)
@@ -331,21 +353,25 @@ public class TimelineServiceImpl implements TimelineService {
         String comment = postCommentDTO.getComment();
         Long userId = BaseContext.getCurrentId();
         Long timelineId = postCommentDTO.getTimelineId();
+        LocalDateTime createdAt = LocalDateTime.now();
 
         TimelineComment timelineComment = TimelineComment.builder()
                 .comment(comment)
                 .userId(userId)
+                .createdAt(createdAt)
                 .timelineId(timelineId).build();
 
         // mysql save
         timelineMapper.postComment(timelineComment);
+        Long commentId = timelineComment.getCommentId();
 
         // redis save
         String key = "timelinecomment:" + postCommentDTO.getTimelineId();
         Map<String, Object> value = new HashMap<>();
+        value.put("commentId", commentId);
         value.put("userId", userId);
         value.put("comment", comment);
-        value.put("createdAt", LocalDateTime.now());
+        value.put("createdAt", createdAt);
         try {
             redis.opsForList().leftPush(
                     key,
@@ -354,7 +380,6 @@ public class TimelineServiceImpl implements TimelineService {
             log.error("发帖子评论存redis失败", e);
             throw new BaseException("发帖子评论存redis失败");
         }
-
     }
 
     /**

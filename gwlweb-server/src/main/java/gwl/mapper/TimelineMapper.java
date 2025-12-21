@@ -74,8 +74,9 @@ public interface TimelineMapper {
     /**
      * 给帖子评论
      */
-    @Insert("insert into timeline_comment(timeline_id,user_id,comment) values(#{timelineId},#{userId},#{comment})")
-    Long postComment(TimelineComment timelineComment);
+    @Options(useGeneratedKeys = true, keyProperty = "commentId", keyColumn = "id")
+    @Insert("insert into timeline_comment(timeline_id,user_id,comment,created_at) values(#{timelineId},#{userId},#{comment},#{createdAt})")
+    int postComment(TimelineComment timelineComment);
 
     /**
      * 获取帖子评论
