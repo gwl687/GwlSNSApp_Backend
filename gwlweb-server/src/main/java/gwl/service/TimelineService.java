@@ -21,9 +21,15 @@ public interface TimelineService {
      */
     void postTimeline(TimelineDTO TimelineDTO) throws java.io.IOException;
     /**
-     * 获取帖子(刷新)
+     * 获取帖子列表(刷新)
      */
     List<TimelineVO> getTimelinePost();
+    /**
+     * 获取单个帖子
+     * @return
+     */
+    TimelineVO getTimelinePostByTimelineId(Long timelineId);
+
     /**
      * 给帖子点赞
      */

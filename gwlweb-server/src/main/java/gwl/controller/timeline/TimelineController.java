@@ -61,6 +61,17 @@ public class TimelineController {
     }
 
     /**
+     * 获取指定timeline内容
+     * 
+     * @return
+     */
+    @GetMapping(path = "gettimelinepostbytimelindid", produces = "application/json")
+    Result<TimelineVO> getTimelinePostByTimelineId(@RequestParam Long timelineId) {
+        return Result.success(timelineService.getTimelinePostByTimelineId(timelineId));
+    }
+
+
+    /**
      * 给帖子点赞
      * 
      * @return

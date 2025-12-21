@@ -305,6 +305,100 @@ public class TimelineServiceImpl implements TimelineService {
     }
 
     /**
+     * 获取单个帖子
+     * 
+     * @return
+     */
+    @Override
+    public TimelineVO getTimelinePostByTimelineId(Long timelineId) {
+        TimelineVO timelineVO;
+        if (redis.hasKey("timeline:post:" + timelineId)) {
+                Map<Object, Object> map = redis.opsForHash().entries("timeline:post:" + timelineId);
+                String userName = map.get("userName").toString();
+                String context = map.get("context").toString();
+                Object imgUrlsObj = map.get("imgUrls");
+                List<String> imgUrls = imgUrlsObj == null
+                        ? Collections.emptyList()
+                        : JSON.parseArray(imgUrlsObj.toString(), String.class);
+                LocalDateTime createdAt = LocalDateTime.parse(map.get("createdAt").toString());
+                String totalLikeStr = redis.opsForValue().get("timeline:like:totalcount:" + timelineId);
+                Integer totalLikedCount = totalLikeStr == null ? 0 : Integer.parseInt(totalLikeStr);
+                Map<Long, Integer> userLikeMap = redis.opsForHash().entries("timeline:like:user:" + timelineId)
+                        .entrySet()
+                        .stream()
+                        // 按 value 倒序
+                        .sorted((e1, e2) -> {
+                            int v1 = Integer.parseInt(e1.getValue().toString());
+                            int v2 = Integer.parseInt(e2.getValue().toString());
+                            return Integer.compare(v2, v1);
+                        })
+                        // 只取前 20
+                        .limit(20)
+                        // 收集成 Map
+                        .collect(Collectors.toMap(
+                                e -> Long.parseLong(e.getKey().toString()),
+                                e -> Integer.parseInt(e.getValue().toString()),
+                                (a, b) -> a,
+                                LinkedHashMap::new // 保持排序后的顺序
+                        ));
+                List<LikeUserVO> likeUserVOs = new ArrayList<>();
+                // 用户点赞数据
+                Integer likedByMeCount = 0;
+                for (Map.Entry<Long, Integer> entry : userLikeMap.entrySet()) {
+                    Long userId = entry.getKey();
+                    Integer likeCount = entry.getValue();
+                    LikeUserVO likeUserVO = LikeUserVO.builder()
+                            .userId(userId)
+                            .avatarUrl(redis.opsForValue().get("useravatarurl:" + userId))
+                            .userLikeCount(likeCount)
+                            .build();
+                    if (userId == BaseContext.getCurrentId()) {
+                        likedByMeCount = likeCount;
+                    }
+                    likeUserVOs.add(likeUserVO);
+                }
+                // 用户评论数据
+                String key = "timelinecomment:" + timelineId;
+                List<String> jsonList = redis.opsForList().range(key, 0, 9);
+                List<TimelineComment> timelineComments = new ArrayList<>();
+
+                for (String json : jsonList) {
+                    try {
+                        JsonNode node = CommonUtil.mapper.readTree(json);
+                        TimelineComment comment = new TimelineComment();
+                        comment.setCommentId(node.get("commentId").asLong());
+                        comment.setUserId(node.get("userId").asLong());
+                        comment.setComment(node.get("comment").asText());
+                        comment.setCreatedAt(
+                                LocalDateTime.parse(node.get("createdAt").asText()));
+                        comment.setTimelineId(timelineId);
+
+                        timelineComments.add(comment);
+                    } catch (Exception e) {
+                        log.error("解析 redis 评论失败: {}", json, e);
+                    }
+                }
+                // 希望评论下方是新的
+                Collections.reverse(timelineComments);
+                timelineVO = TimelineVO.builder()
+                        .timelineId(timelineId)
+                        .topLikeUsers(likeUserVOs)
+                        .userName(userName)
+                        .context(context)
+                        .imgUrls(imgUrls)
+                        .createdAt(createdAt)
+                        .likedByMeCount(likedByMeCount)
+                        .totalLikeCount(totalLikedCount)
+                        .comments(timelineComments)
+                        .build();
+            } else {
+                log.info("没有取到redis里的timeline数据，查询mysql");
+                timelineVO = timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId());
+            }
+        return timelineVO;
+    }
+
+    /**
      * 给帖子点赞
      */
     @Override
