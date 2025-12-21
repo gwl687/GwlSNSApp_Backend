@@ -1,5 +1,6 @@
 package gwl.entity.event;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class TimelinePushEvent {
     private String publisherName;
     private String content;
-    private String createdAt;
+    private LocalDateTime createdAt;
     private Long postId;
     private List<String> fanIds;
 }

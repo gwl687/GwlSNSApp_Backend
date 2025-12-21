@@ -1,5 +1,6 @@
 package gwl.mapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Insert;
@@ -33,7 +34,7 @@ public interface TimelineMapper {
      * 用户timeline表新增数据
      */
     @Insert("insert into timeline(user_id,post_id,created_at) values (#{userId},#{postId},#{createdAt})")
-    void addTimeline(Long userId, Long postId, String createdAt);
+    void addTimeline(Long userId, Long postId, LocalDateTime createdAt);
 
     /**
      * 获取用户timeline ids

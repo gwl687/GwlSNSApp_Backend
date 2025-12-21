@@ -117,7 +117,7 @@ public class TimelineServiceImpl implements TimelineService {
         timelineMap.put("userId", timelineDTO.getUserId().toString());
         timelineMap.put("userName", publisherName);
         timelineMap.put("context", timelineDTO.getContext());
-        timelineMap.put("createdAt", timelineVO.getCreatedAt());
+        timelineMap.put("createdAt", timelineVO.getCreatedAt().toString());
 
         redis.opsForHash().putAll(key, timelineMap);
 
@@ -158,7 +158,7 @@ public class TimelineServiceImpl implements TimelineService {
         List<String> fanIds = event.getFanIds();
         String publisherName = event.getPublisherName();
         String content = event.getContent();
-        String createdAt = event.getCreatedAt();
+        LocalDateTime createdAt = event.getCreatedAt();
 
         if (fanIds == null || fanIds.isEmpty()) {
             return;
@@ -171,7 +171,7 @@ public class TimelineServiceImpl implements TimelineService {
             // 将 postId 放到用户时间线头部
             redis.opsForList().leftPush(key, postId.toString());
 
-            // 控制时间线长度，比如最多 1000 条
+            // 控制时间线长度，最多 1000 条
             redis.opsForList().trim(key, 0, 999);
 
             // 数据库更新user的timeline表
@@ -196,7 +196,6 @@ public class TimelineServiceImpl implements TimelineService {
             log.info("推送给用户:{}", fanId);
 
         }
-
         // iOS
         // if (token.startsWith("ios:")) {
         // sendAPNsPush(token.substring(4), title, body);
@@ -219,14 +218,13 @@ public class TimelineServiceImpl implements TimelineService {
             // redis里有数据就取redis的
             if (redis.hasKey("timeline:post:" + timelineId)) {
                 Map<Object, Object> map = redis.opsForHash().entries("timeline:post:" + timelineId);
-                log.info("{timelineMap=}", map);
                 String userName = map.get("userName").toString();
                 String context = map.get("context").toString();
                 Object imgUrlsObj = map.get("imgUrls");
                 List<String> imgUrls = imgUrlsObj == null
                         ? Collections.emptyList()
                         : JSON.parseArray(imgUrlsObj.toString(), String.class);
-                String createdAt = map.get("createdAt").toString();
+                LocalDateTime createdAt = LocalDateTime.parse(map.get("createdAt").toString());
                 String totalLikeStr = redis.opsForValue().get("timeline:like:totalcount:" + timelineId);
                 Integer totalLikedCount = totalLikeStr == null ? 0 : Integer.parseInt(totalLikeStr);
                 Map<Long, Integer> userLikeMap = redis.opsForHash().entries("timeline:like:user:" + timelineId)
@@ -272,7 +270,7 @@ public class TimelineServiceImpl implements TimelineService {
                     try {
                         JsonNode node = CommonUtil.mapper.readTree(json);
                         TimelineComment comment = new TimelineComment();
-                        comment.setCommentId(node.get("commentId").asLong()); 
+                        comment.setCommentId(node.get("commentId").asLong());
                         comment.setUserId(node.get("userId").asLong());
                         comment.setComment(node.get("comment").asText());
                         comment.setCreatedAt(
@@ -284,7 +282,7 @@ public class TimelineServiceImpl implements TimelineService {
                         log.error("解析 redis 评论失败: {}", json, e);
                     }
                 }
-                //希望评论下方是新的
+                // 希望评论下方是新的
                 Collections.reverse(timelineComments);
                 TimelineVO timelineVO = TimelineVO.builder()
                         .timelineId(timelineId)
