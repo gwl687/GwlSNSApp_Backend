@@ -22,6 +22,7 @@ import gwl.context.BaseContext;
 import gwl.dubboService.DubboGreetingService;
 import gwl.entity.GroupChat;
 import gwl.entity.User;
+import gwl.mapper.UserMapper;
 import gwl.pojo.DTO.AddFriendToChatListDTO;
 import gwl.pojo.DTO.CreateGroupChatDTO;
 import gwl.pojo.DTO.GetGroupChatDTO;
@@ -38,11 +39,8 @@ import gwl.service.CommonService;
 import gwl.service.UserService;
 import gwl.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.exception.SdkClientException;
 
 @RestController
 @RequestMapping("/user")
@@ -57,6 +55,8 @@ public class TestController {
     private StringRedisTemplate redis;
     @Autowired
     private CommonService commonService;
+    @Autowired
+    private UserMapper userMapper;
 
     /**
      * dubbo相关
@@ -256,5 +256,15 @@ public class TestController {
         String uploadKey = "avatar/" + BaseContext.getCurrentId();
         commonService.uploadToS3(file, uploadKey);
         return Result.success(true);
+    }
+    /**
+     * 获取用户头像url
+     * @param userId
+     * @return
+     */
+    @GetMapping(path = "/getuseravatar", produces = "application/json")
+    @Operation(summary = "getUserAvatar")
+    Result<String> getUserAvatar(@RequestParam("userId") Long userId) {
+        return Result.success(userMapper.getUserAvatarUrl(userId));
     }
 }

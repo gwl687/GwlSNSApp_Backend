@@ -5,7 +5,7 @@
 
     <!-- TimelineVO 结果映射 -->
     <resultMap id="TimelineVOMap" type="gwl.pojo.VO.TimelineVO">
-
+        <id property="timelineId" column="timeline_id"/>
         <result property="userName" column="username"/>
         <result property="context" column="context"/>
         <result property="createdAt" column="created_at"/>
@@ -20,13 +20,17 @@
                     ofType="gwl.pojo.VO.LikeUserVO"
                     column="timeline_id"
                     select="selectTopLikeUsers"/>
+
+        <collection property="comments"
+                    ofType="gwl.entity.timeline.TimelineComment"
+                    column="timeline_id"
+                    select="selectComments"/>
     </resultMap>
 
     <!-- 主查询：Timeline 内容 -->
     <select id="getTimelineContent"
             parameterType="long"
             resultMap="TimelineVOMap">
-
         SELECT
             tc.id              AS timeline_id,
             tu.username        AS username,
@@ -69,6 +73,22 @@
         WHERE tl.timeline_id = #{timeline_id}
         ORDER BY tl.like_count DESC
         LIMIT 20
+    </select>
+
+    <!--子查询：帖子评论-->
+    <select id="selectComments"
+            parameterType="long"
+            resultType="gwl.entity.timeline.TimelineComment">
+        SELECT
+        id           AS commentId,
+        user_id      AS userId,
+        comment      AS comment,
+        timeline_id  AS timelineId,
+        created_at   AS createdAt
+        FROM timeline_comment
+        WHERE timeline_id = #{timeline_id}
+        ORDER BY created_at DESC
+        LIMIT 10
     </select>
 
     <!-- 刷盘帖子对应用户点赞数 -->

@@ -182,4 +182,13 @@ public interface UserMapper {
      */
     @Insert("insert into group_messages(group_id, sender_id, content, type) values(#{toUser},#{fromUser},#{content},#{type})")
     void saveGroupMessage(Message message);
+
+    /**
+     * 获取用户头像url
+     * 
+     * @param userId
+     * @return
+     */
+    @Select("select avatarurl from test_user where id = #{userId}")
+    String getUserAvatarUrl(Long userId);
 }

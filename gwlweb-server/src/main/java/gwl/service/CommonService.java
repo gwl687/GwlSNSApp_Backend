@@ -13,8 +13,7 @@ public interface CommonService {
      * 
      * @return
      */
-    Boolean uploadToS3(MultipartFile file, String key)
-            throws IOException;
+    Boolean uploadToS3(MultipartFile file, String key);
 
     /**
      * 获取s3的img地址列表

@@ -11,6 +11,7 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import gwl.entity.event.TimelineLikeHitEvent;
 import gwl.entity.event.TimelinePublishEvent;
 import gwl.entity.event.TimelinePushEvent;
+import gwl.pojo.DTO.PostCommentDTO;
 import gwl.pojo.DTO.TimelineDTO;
 import gwl.pojo.VO.TimelineVO;
 
@@ -42,4 +43,8 @@ public interface TimelineService {
      * kafka推送消费者
      */
     void onTimelinePush(TimelinePushEvent event) throws IOException, FirebaseMessagingException;
+    /**
+     * 给帖子评论
+     */
+    void postComment(PostCommentDTO postCommentDTO);
 }

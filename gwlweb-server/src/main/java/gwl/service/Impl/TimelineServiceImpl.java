@@ -1,6 +1,7 @@
 package gwl.service.Impl;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.alibaba.fastjson2.JSON;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -31,14 +33,18 @@ import gwl.entity.TimelineContent;
 import gwl.entity.User;
 import gwl.entity.event.TimelineLikeHitEvent;
 import gwl.entity.event.TimelinePushEvent;
+import gwl.entity.timeline.TimelineComment;
 import gwl.entity.timeline.TimelineUserLike;
+import gwl.exception.BaseException;
 import gwl.mapper.TimelineMapper;
 import gwl.mapper.UserMapper;
+import gwl.pojo.DTO.PostCommentDTO;
 import gwl.pojo.DTO.TimelineDTO;
 import gwl.pojo.VO.LikeUserVO;
 import gwl.pojo.VO.TimelineVO;
 import gwl.service.CommonService;
 import gwl.service.TimelineService;
+import gwl.util.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -240,6 +246,7 @@ public class TimelineServiceImpl implements TimelineService {
                                 LinkedHashMap::new // 保持排序后的顺序
                         ));
                 List<LikeUserVO> likeUserVOs = new ArrayList<>();
+                // 用户点赞数据
                 Integer likedByMeCount = 0;
                 for (Map.Entry<Long, Integer> entry : userLikeMap.entrySet()) {
                     Long userId = entry.getKey();
@@ -254,6 +261,8 @@ public class TimelineServiceImpl implements TimelineService {
                     }
                     likeUserVOs.add(likeUserVO);
                 }
+                // 用户评论数据
+                List<TimelineComment> timelineComments = timelineMapper.getComments(timelineId);
 
                 TimelineVO timelineVO = TimelineVO.builder()
                         .timelineId(timelineId)
@@ -264,6 +273,7 @@ public class TimelineServiceImpl implements TimelineService {
                         .createdAt(createdAt)
                         .likedByMeCount(likedByMeCount)
                         .totalLikeCount(totalLikedCount)
+                        .comments(timelineComments)
                         .build();
                 timelineVOs.add(timelineVO);
             } else {
@@ -311,13 +321,40 @@ public class TimelineServiceImpl implements TimelineService {
             redis.opsForSet()
                     .remove("dirty:timeline:set", timelineId);
         }
-        // TimelineLikeHitEvent timelineLikeHitEvent = TimelineLikeHitEvent.builder()
-        //         .timelineId(timelineId)
-        //         .userId(BaseContext.getCurrentId())
-        //         .build();
-        // kafkaTemplate.send(
-        //         "timeline_likehit",
-        //         timelineLikeHitEvent);
+    }
+
+    /**
+     * 给帖子评论
+     */
+    @Override
+    public void postComment(PostCommentDTO postCommentDTO) {
+        String comment = postCommentDTO.getComment();
+        Long userId = BaseContext.getCurrentId();
+        Long timelineId = postCommentDTO.getTimelineId();
+
+        TimelineComment timelineComment = TimelineComment.builder()
+                .comment(comment)
+                .userId(userId)
+                .timelineId(timelineId).build();
+
+        // mysql save
+        timelineMapper.postComment(timelineComment);
+
+        // redis save
+        String key = "timelinecomment:" + postCommentDTO.getTimelineId();
+        Map<String, Object> value = new HashMap<>();
+        value.put("userId", userId);
+        value.put("comment", comment);
+        value.put("createdAt", LocalDateTime.now());
+        try {
+            redis.opsForList().leftPush(
+                    key,
+                    CommonUtil.mapper.writeValueAsString(value));
+        } catch (Exception e) {
+            log.error("发帖子评论存redis失败", e);
+            throw new BaseException("发帖子评论存redis失败");
+        }
+
     }
 
     /**
@@ -386,7 +423,6 @@ public class TimelineServiceImpl implements TimelineService {
                     .remove("dirty:timeline:set", dirtyTimeline);
         }
     }
-
 
     /**
      * android推送

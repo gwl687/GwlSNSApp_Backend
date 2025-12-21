@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import gwl.entity.timeline.TimelineUserLike;
+import gwl.pojo.DTO.PostCommentDTO;
 import gwl.pojo.DTO.TimelineDTO;
 import gwl.pojo.DTO.TimelineHitLikeDTO;
 import gwl.pojo.VO.TimelineVO;
@@ -72,5 +73,16 @@ public class TimelineController {
             return Result.error(e.toString());
         }
         return Result.success("hitlike succees!");
+    }
+
+    /**
+     * 给帖子评论
+     * 
+     * @return
+     */
+    @PostMapping(path = "postcomment", produces = "application/json")
+    Result<Boolean> postComment(@RequestBody PostCommentDTO postCommentDTO) {
+        timelineService.postComment(postCommentDTO);
+        return Result.success(true);
     }
 }

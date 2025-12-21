@@ -13,7 +13,9 @@ import org.apache.ibatis.annotations.Update;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
 import gwl.entity.TimelineContent;
+import gwl.entity.timeline.TimelineComment;
 import gwl.entity.timeline.TimelineUserLike;
+import gwl.pojo.DTO.PostCommentDTO;
 import gwl.pojo.DTO.TimelineDTO;
 import gwl.pojo.VO.TimelineContentVO;
 import gwl.pojo.VO.TimelineVO;
@@ -68,4 +70,18 @@ public interface TimelineMapper {
      */
     @Update("update timeline_content set img_urls=#{imgUrls,typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler} where id = #{postId}")
     void updateTimelineImgs(List<String> imgUrls, Long postId);
+
+    /**
+     * 给帖子评论
+     */
+    @Insert("insert into timeline_comment(timeline_id,user_id,comment) values(#{timelineId},#{userId},#{comment})")
+    Long postComment(TimelineComment timelineComment);
+
+    /**
+     * 获取帖子评论
+     * 
+     * @param timelineId
+     */
+    @Select("select id as commentId,user_id as userId,comment,timeline_id as timelineId,created_at as createdAt from timeline_comment where timeline_id = #{timelineId} LIMIT 10")
+    List<TimelineComment> getComments(Long timelineId);
 }

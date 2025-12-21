@@ -37,7 +37,7 @@ public class CommonServiceImpl implements CommonService {
     private StringRedisTemplate templateRedis;
 
     @Override
-    public Boolean uploadToS3(MultipartFile file, String key) throws java.io.IOException {
+    public Boolean uploadToS3(MultipartFile file, String key) {
         // 构建上传请求
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(aws.getBucket()) //
@@ -47,7 +47,11 @@ public class CommonServiceImpl implements CommonService {
                 .build();
 
         // 上传文件
-        s3.putObject(request, RequestBody.fromBytes(file.getBytes()));
+        try {
+            s3.putObject(request, RequestBody.fromBytes(file.getBytes()));
+        } catch (Exception e) {
+            log.error("上传到s3失败:", e);
+        }
 
         // 拼接公开URL
         String avartarUrl = aws.getUrl() + key;

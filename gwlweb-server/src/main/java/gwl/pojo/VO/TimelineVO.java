@@ -2,7 +2,7 @@ package gwl.pojo.VO;
 
 import java.util.List;
 
-
+import gwl.entity.timeline.TimelineComment;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,4 +22,5 @@ public class TimelineVO {
     Integer likedByMeCount;
     Long timelineId;
     List<LikeUserVO> topLikeUsers;
+    List<TimelineComment> comments;
 }
