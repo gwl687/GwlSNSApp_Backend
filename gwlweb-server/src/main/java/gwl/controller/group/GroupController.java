@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import gwl.context.BaseContext;
@@ -24,8 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 public class GroupController {
     @Autowired
     GroupService groupService;
+
     /**
      * 添加群成员
+     * 
      * @param groupId
      * @param createGroupChatDTO
      * @return
@@ -41,6 +44,7 @@ public class GroupController {
 
     /**
      * 移除群成员
+     * 
      * @param groupId
      * @param createGroupChatDTO
      * @return
@@ -56,7 +60,7 @@ public class GroupController {
 
     @GetMapping(path = "/getlivekittoken/{groupId}", produces = "application/json")
     @Operation(summary = "获取livekittoken")
-    Result<String> getLiveKitToken(@PathVariable Long groupId){
+    Result<String> getLiveKitToken(@PathVariable Long groupId) {
         String token = groupService.createLivekitToken(groupId.toString());
         return Result.success(token);
     }

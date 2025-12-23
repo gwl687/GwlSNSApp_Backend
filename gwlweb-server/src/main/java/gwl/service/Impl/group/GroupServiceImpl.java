@@ -1,17 +1,23 @@
 package gwl.service.Impl.group;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import gwl.components.ChannelManager;
 import gwl.components.NettyHandlers.DispatcherHandler;
 import gwl.context.BaseContext;
 import gwl.entity.GroupChat;
+import gwl.entity.User;
 import gwl.mapper.UserMapper;
 import gwl.pojo.CommonPojo.WebCommand;
 import gwl.pojo.DTO.CreateGroupChatDTO;
@@ -88,7 +94,7 @@ public class GroupServiceImpl implements GroupService {
             }
             userMapper.updateGroupName(groupId, groupName);
             // 发送更新群名的消息
-            channelManager.sendCommand(BaseContext.getCurrentId(),memberIds, "groupMessageChange");
+            channelManager.sendCommand(BaseContext.getCurrentId(), memberIds, "groupMessageChange");
             log.info("发送群信息更改的消息(移除群成员)");
         } catch (Exception e) {
             e.printStackTrace();
@@ -96,6 +102,7 @@ public class GroupServiceImpl implements GroupService {
         }
         return true;
     }
+
     /**
      * 创建视频聊天token
      */
@@ -103,7 +110,17 @@ public class GroupServiceImpl implements GroupService {
     public String createLivekitToken(String roomName) {
         AccessToken token = new AccessToken(API_KEY, API_SECRET);
         token.setIdentity(BaseContext.getCurrentId().toString());
-        token.addGrants(new RoomJoin(true),new RoomName(roomName));
+        User user = userMapper.getByUserId(BaseContext.getCurrentId());
+        String username = user.getUsername();
+        // 2️⃣ metadata：展示用信息
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("username", username);
+        try {
+            token.setMetadata(new ObjectMapper().writeValueAsString(metadata));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        token.addGrants(new RoomJoin(true), new RoomName(roomName));
         return token.toJwt();
     }
 }

@@ -185,7 +185,7 @@ public class TimelineServiceImpl implements TimelineService {
 
     public void sendPushToUser(String fanId, String publisherName, Long postId, String content)
             throws IOException, FirebaseMessagingException {
-        String title = publisherName + "posted a new update";
+        String title = publisherName + " posted a new timeline";
 
         // 查询用户的 push token
         String token = redis.opsForValue().get("push_token:" + fanId);
