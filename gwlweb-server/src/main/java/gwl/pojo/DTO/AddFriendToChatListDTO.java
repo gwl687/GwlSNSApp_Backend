@@ -1,4 +1,4 @@
-package gwl.pojo.DTO;
+package gwl.pojo.dto;
 
 
 import io.swagger.v3.oas.annotations.media.Schema;

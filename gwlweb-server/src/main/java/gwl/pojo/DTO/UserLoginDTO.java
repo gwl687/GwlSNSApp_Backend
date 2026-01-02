@@ -1,4 +1,4 @@
-package gwl.pojo.DTO;
+package gwl.pojo.dto;
 
 import org.apache.kafka.common.protocol.types.Field.Str;
 

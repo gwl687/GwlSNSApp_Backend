@@ -1,9 +1,9 @@
-package gwl.pojo.VO;
+package gwl.pojo.vo;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import gwl.entity.timeline.TimelineComment;
+import gwl.pojo.entity.TimelineComment;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

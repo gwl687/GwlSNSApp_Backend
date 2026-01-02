@@ -4,7 +4,7 @@
 <mapper namespace="gwl.mapper.TimelineMapper">
 
     <!-- TimelineVO 结果映射 -->
-    <resultMap id="TimelineVOMap" type="gwl.pojo.VO.TimelineVO">
+    <resultMap id="TimelineVOMap" type="gwl.pojo.vo.TimelineVO">
         <id property="timelineId" column="timeline_id"/>
         <result property="userName" column="username"/>
         <result property="context" column="context"/>
@@ -17,15 +17,28 @@
         <result property="likedByMeCount" column="likedByMeCount"/>
 
         <collection property="topLikeUsers"
-                    ofType="gwl.pojo.VO.LikeUserVO"
+                    ofType="gwl.pojo.vo.LikeUserVO"
                     column="timeline_id"
                     select="selectTopLikeUsers"/>
 
         <collection property="comments"
-                    ofType="gwl.entity.timeline.TimelineComment"
+                    ofType="gwl.pojo.entity.TimelineComment"
                     column="timeline_id"
                     select="selectComments"/>
     </resultMap>
+
+    <!-- 获取timelineIds -->
+    <select id="getTimelineIds" resultType="java.lang.Long">
+        SELECT post_id
+        FROM timeline
+        WHERE user_id = #{userId}
+    <if test="cursor != null">
+        AND created_at &lt; #{cursor}
+    </if>
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
 
     <!-- 主查询：Timeline 内容 -->
     <select id="getTimelineContent"
@@ -62,7 +75,7 @@
 
     <select id="selectTopLikeUsers"
             parameterType="long"
-            resultType="gwl.pojo.VO.LikeUserVO">
+            resultType="gwl.pojo.vo.LikeUserVO">
         SELECT
             tl.user_id    AS userId,
             u.avatarurl  AS avatarUrl,
@@ -78,7 +91,7 @@
     <!--子查询：帖子评论-->
     <select id="selectComments"
             parameterType="long"
-            resultType="gwl.entity.timeline.TimelineComment">
+            resultType="gwl.pojo.entity.TimelineComment">
         SELECT
         id           AS commentId,
         user_id      AS userId,
@@ -92,23 +105,25 @@
     </select>
 
     <!-- 刷盘帖子对应用户点赞数 -->
-    <insert id="flushLikeToDB" parameterType="gwl.entity.timeline.TimelineUserLike">
-        INSERT INTO timeline_like
-            (timeline_id, user_id, like_count)
-        VALUES
-    <foreach collection="userLikeCount.entrySet()"
-             item="entry"
+    <insert id="flushLikeToDB" parameterType="gwl.pojo.entity.TimelineUserLike">
+        <if test="userLikeCount != null and userLikeCount.size() > 0">
+    INSERT INTO timeline_like
+        (timeline_id, user_id, like_count)
+    VALUES
+    <foreach collection="userLikeCount"
+             index="userId"
+             item="likeCount"
              separator=",">
-            (
-                #{timelineId},
-                #{entry.key},
-                #{entry.value}
-            )
+        (
+            #{timelineId},
+            #{userId},
+            #{likeCount}
+        )
     </foreach>
-        ON DUPLICATE KEY UPDATE
-            like_count = like_count + VALUES(like_count),
-            updated_at = CURRENT_TIMESTAMP
+            ON DUPLICATE KEY UPDATE
+                like_count = like_count + VALUES(like_count),
+                updated_at = CURRENT_TIMESTAMP
+        </if>
     </insert>
-
 
 </mapper>

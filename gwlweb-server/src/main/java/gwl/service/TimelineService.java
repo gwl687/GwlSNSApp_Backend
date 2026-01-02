@@ -1,29 +1,30 @@
 package gwl.service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.google.firebase.messaging.FirebaseMessagingException;
 
-import gwl.entity.event.TimelineLikeHitEvent;
-import gwl.entity.event.TimelinePublishEvent;
-import gwl.entity.event.TimelinePushEvent;
-import gwl.pojo.DTO.PostCommentDTO;
-import gwl.pojo.DTO.TimelineDTO;
-import gwl.pojo.VO.TimelineVO;
+import gwl.pojo.dto.PostCommentDTO;
+import gwl.pojo.dto.TimelineDTO;
+import gwl.pojo.entity.TimelineLikeHitEvent;
+import gwl.pojo.entity.TimelinePushEvent;
+import gwl.pojo.vo.TimelineVO;
 
 public interface TimelineService {
     /**
      * 推送帖子
      */
-    void postTimeline(TimelineDTO TimelineDTO) throws java.io.IOException;
+    void postTimeline(TimelineDTO TimelineDTO);
     /**
      * 获取帖子列表(刷新)
      */
-    List<TimelineVO> getTimelinePost();
+    List<TimelineVO> getTimelinePost(Integer limit, LocalDateTime cursor);
     /**
      * 获取单个帖子
      * @return

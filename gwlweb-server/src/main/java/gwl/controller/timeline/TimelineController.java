@@ -1,10 +1,9 @@
 package gwl.controller.timeline;
 
-import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
-
-import org.checkerframework.checker.units.qual.t;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,26 +13,34 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import gwl.entity.timeline.TimelineUserLike;
-import gwl.pojo.DTO.PostCommentDTO;
-import gwl.pojo.DTO.TimelineDTO;
-import gwl.pojo.DTO.TimelineHitLikeDTO;
-import gwl.pojo.VO.TimelineVO;
+import gwl.pojo.dto.PostCommentDTO;
+import gwl.pojo.dto.TimelineDTO;
+import gwl.pojo.vo.TimelineVO;
 import gwl.result.Result;
 import gwl.service.TimelineService;
-import gwl.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.services.s3.endpoints.internal.Value.Int;
 
 @RestController
-@RequestMapping("/timeline")
+@RequestMapping("/api/timeline")
 @Slf4j
-@Tag(name = "帖子相关接口")
+@Tag(name = "timeline")
 public class TimelineController {
     @Autowired
     TimelineService timelineService;
 
+    /**
+     * post a timeline
+     * 
+     * @param userId
+     * @param context
+     * @param files
+     * @return
+     */
     @PostMapping(path = "posttimeline", produces = "application/json")
+    @Operation(summary = "post a timeline")
     Result<String> postTimeline(@RequestParam("userId") Long userId,
             @RequestParam("context") String context,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
@@ -41,12 +48,8 @@ public class TimelineController {
                 .userId(userId)
                 .context(context)
                 .files(files).build();
-        log.info("发帖子: {}", timelineDTO);
-        try {
-            timelineService.postTimeline(timelineDTO);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        log.info("post a timeline: {}", timelineDTO);
+        timelineService.postTimeline(timelineDTO);
         return Result.success("posttimeline");
     }
 
@@ -56,8 +59,10 @@ public class TimelineController {
      * @return
      */
     @GetMapping(path = "gettimelinepost", produces = "application/json")
-    Result<List<TimelineVO>> getTimelinePost() {
-        return Result.success(timelineService.getTimelinePost());
+    @Operation(summary = "get all timelines content")
+    Result<List<TimelineVO>> getTimelinePost(@RequestParam Integer limit,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime cursor) {
+        return Result.success(timelineService.getTimelinePost(limit, cursor));
     }
 
     /**
@@ -66,10 +71,10 @@ public class TimelineController {
      * @return
      */
     @GetMapping(path = "gettimelinepostbytimelindid", produces = "application/json")
+    @Operation(summary = "get timeline content by timelineId")
     Result<TimelineVO> getTimelinePostByTimelineId(@RequestParam Long timelineId) {
         return Result.success(timelineService.getTimelinePostByTimelineId(timelineId));
     }
-
 
     /**
      * 给帖子点赞
@@ -77,13 +82,10 @@ public class TimelineController {
      * @return
      */
     @PostMapping(path = "hitlike", produces = "application/json")
+    @Operation(summary = "hitlike a timeline")
     Result<String> timelinehitLike(@RequestBody Long timelineId) {
-        try {
-            timelineService.likeHit(timelineId);
-        } catch (Exception e) {
-            return Result.error(e.toString());
-        }
-        return Result.success("hitlike succees!");
+        timelineService.likeHit(timelineId);
+        return Result.success("hitlike success!");
     }
 
     /**
@@ -92,6 +94,7 @@ public class TimelineController {
      * @return
      */
     @PostMapping(path = "postcomment", produces = "application/json")
+    @Operation(summary = "post a comment")
     Result<Boolean> postComment(@RequestBody PostCommentDTO postCommentDTO) {
         timelineService.postComment(postCommentDTO);
         return Result.success(true);

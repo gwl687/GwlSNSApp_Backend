@@ -2,21 +2,23 @@ package gwl.service.Impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
-import org.checkerframework.checker.units.qual.t;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
-
-import gwl.constant.AWSConstant;
+import gwl.properties.AwsProperties;
 import gwl.context.BaseContext;
 import gwl.service.CommonService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +34,11 @@ public class CommonServiceImpl implements CommonService {
     @Autowired
     private S3Client s3;
     @Autowired
-    private AWSConstant aws;
+    private AwsProperties aws;
     @Autowired
     private StringRedisTemplate templateRedis;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Boolean uploadToS3(MultipartFile file, String key) {
@@ -52,7 +56,6 @@ public class CommonServiceImpl implements CommonService {
         } catch (Exception e) {
             log.error("上传到s3失败:", e);
         }
-
         // 拼接公开URL
         String avartarUrl = aws.getUrl() + key;
         // 如果上传的是头像，存redis
@@ -91,7 +94,7 @@ public class CommonServiceImpl implements CommonService {
     }
 
     /**
-     * android推送
+     * 推送到终端
      * 
      * @param deviceToken
      * @param title
@@ -99,19 +102,58 @@ public class CommonServiceImpl implements CommonService {
      * @throws IOException
      * @throws FirebaseMessagingException
      */
-    public void sendFCMPush(String deviceToken, String title, String content, String type) {
-        Message message = Message.builder()
+    public void sendPush(
+            Long userId,
+            String title,
+            String content,
+            String type,
+            Boolean silent) {
+        String deviceToken = stringRedisTemplate.opsForValue().get("push_token:" + userId);
+        if (deviceToken == null) {
+            log.warn("No push token for user {}", userId);
+            return;
+        }
+        Map<String, String> data = new HashMap<>();
+        data.put("type", type);
+        data.put("title", title);
+        data.put("content", content);
+        Message.Builder builder = Message.builder()
                 .setToken(deviceToken)
-                .putData("type", type)
-                .setNotification(
-                        Notification.builder()
-                                .setTitle(title)
-                                .setBody(content)
-                                .build())
-                .build();
+                .putAllData(data);
+        if (silent) {
+            // 静默
+            builder.setApnsConfig(
+                    ApnsConfig.builder()
+                            .setAps(
+                                    Aps.builder()
+                                            .setContentAvailable(true)
+                                            .build())
+                            .build());
+        } else {
+            // 普通通知
+            builder
+                    .setNotification(
+                            Notification.builder()
+                                    .setTitle(title)
+                                    .setBody(content)
+                                    .build())
+                    .setApnsConfig(
+                            ApnsConfig.builder()
+                                    .setAps(
+                                            Aps.builder()
+                                                    .setAlert(
+                                                            ApsAlert.builder()
+                                                                    .setTitle(title)
+                                                                    .setBody(content)
+                                                                    .build())
+                                                    .setSound("default")
+                                                    .build())
+                                    .build());
+        }
+
         try {
-            String response = FirebaseMessaging.getInstance().send(message);
-            System.out.println("FCM Response: " + response);
+            String response = FirebaseMessaging.getInstance().send(builder.build());
+            log.info("FCM response: {}", response);
         } catch (Exception e) {
             log.error("FCM push error, token={}", deviceToken, e);
         }

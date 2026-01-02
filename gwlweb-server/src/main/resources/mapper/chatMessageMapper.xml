@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="gwl.mapper.ChatMessageMapper">
+    <!-- 发送私聊消息 -->
+    <insert id="sendPrivateMessage"> insert into chat_messages(receiver_id,sender_id,content)
+        values(#{friendId},#{myId},#{context}) </insert>
+    <!-- 更新聊天列表最新消息时间 -->
+    <update id="updateLastMessageTime"> update chatlist set last_message_time = now() where isgroup = 0
+        and ( (user_id = #{myId} and friend_id = #{friendOrGroupId}) or (user_id =
+        #{friendOrGroupId} and friend_id = #{myId}) ) </update>
+    <!-- 获取私聊消息 -->
+    <select id="getPrivateMessages"
+        parameterType="long"
+        resultType="gwl.pojo.vo.PrivateMessageVO"> select cm.* from chat_messages cm join chatlist
+        cl on cl.friend_id = case when cm.sender_id = #{myId} then cm.receiver_id else cm.sender_id
+        end where cl.user_id = #{myId} and cl.isgroup = 0 and (cm.sender_id = #{myId} or
+        cm.receiver_id = #{myId}) </select>
+</mapper>

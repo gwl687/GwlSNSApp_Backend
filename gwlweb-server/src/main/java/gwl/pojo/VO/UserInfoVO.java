@@ -1,16 +1,16 @@
-package gwl.pojo.VO;
-
-import java.io.Serializable;
+package gwl.pojo.vo;
 
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
-public class UserInfoVO implements Serializable{
-    private String username;
+public class UserInfoVO{
+    private Long userId;
 
-    private String sex;
+    private int sex;
+
+    private String username;
 
     private String avatarurl;
 

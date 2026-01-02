@@ -1,4 +1,4 @@
-package gwl.pojo.DTO;
+package gwl.pojo.dto;
 
 import lombok.Data;
 

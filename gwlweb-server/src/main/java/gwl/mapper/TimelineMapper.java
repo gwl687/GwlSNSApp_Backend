@@ -10,16 +10,17 @@ import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+import org.springframework.cglib.core.Local;
 
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 
-import gwl.entity.TimelineContent;
-import gwl.entity.timeline.TimelineComment;
-import gwl.entity.timeline.TimelineUserLike;
-import gwl.pojo.DTO.PostCommentDTO;
-import gwl.pojo.DTO.TimelineDTO;
-import gwl.pojo.VO.TimelineContentVO;
-import gwl.pojo.VO.TimelineVO;
+import gwl.pojo.dto.PostCommentDTO;
+import gwl.pojo.dto.TimelineDTO;
+import gwl.pojo.entity.TimelineComment;
+import gwl.pojo.entity.TimelineContent;
+import gwl.pojo.entity.TimelineUserLike;
+import gwl.pojo.vo.TimelineContentVO;
+import gwl.pojo.vo.TimelineVO;
 
 @Mapper
 public interface TimelineMapper {
@@ -41,21 +42,13 @@ public interface TimelineMapper {
      * 
      * @return
      */
-    @Select("select post_id from timeline where user_id = #{userId} order by created_at desc")
-    List<Long> getTimeline(Long userId);
+    List<Long> getTimelineIds(Long userId, Integer limit, LocalDateTime cursor);
 
     /**
      * 获取timeline内容
      * 
      * @return
      */
-    // @Select("select tu.username ,tc.context,tc.img_urls,tc.created_at from
-    // timeline_content tc left join test_user tu on tc.user_id = tu.id where tc.id
-    // = #{timelineId}")
-    // @Results({
-    // @Result(column = "img_urls", property = "imgUrls", typeHandler =
-    // JacksonTypeHandler.class)
-    // })
     TimelineVO getTimelineContent(Long timelineId, Long currentUserId);
 
     /**

@@ -32,5 +32,5 @@ public interface CommonService {
      * @throws IOException
      * @throws FirebaseMessagingException
      */
-    void sendFCMPush(String deviceToken, String title, String content, String type);
+    void sendPush(Long userId, String title, String content, String type, Boolean silent);
 }

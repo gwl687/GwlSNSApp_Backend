@@ -1,25 +1,21 @@
 package gwl.mapper;
 
 import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-import gwl.entity.GroupChat;
-import gwl.entity.User;
-import gwl.pojo.CommonPojo.Message;
-import gwl.pojo.DTO.AddFriendToChatListDTO;
-import gwl.pojo.DTO.CreateGroupChatDTO;
-import gwl.pojo.DTO.GroupmessageDTO;
-import gwl.pojo.DTO.UserInfoDTO;
-import gwl.pojo.VO.GroupChatVO;
-import gwl.pojo.VO.GroupMessagesVO;
+import gwl.pojo.dto.AddFriendToChatListDTO;
+import gwl.pojo.dto.UserInfoDTO;
 import gwl.pojo.entity.ChatFriend;
 import gwl.pojo.entity.ChatListId;
+import gwl.pojo.entity.GroupChat;
+import gwl.pojo.entity.Message;
+import gwl.pojo.entity.User;
+import gwl.pojo.vo.GroupChatVO;
+import gwl.pojo.vo.GroupMessagesVO;
+import gwl.pojo.vo.SearchForUserVO;
 
 @Mapper
 public interface UserMapper {
@@ -58,13 +54,6 @@ public interface UserMapper {
     @Select("select * from test_user  where id = #{id}")
     User getByUserId(Long id);
 
-    @Select("""
-            SELECT u.*
-            FROM test_user u
-            JOIN friend_relation fr ON u.id = fr.friend_id
-            WHERE fr.user_id = #{id}
-            """)
-    List<User> getFriendListByUserId(Long id);
 
     /**
      * 更新用户信息
@@ -145,7 +134,7 @@ public interface UserMapper {
      * @param id
      * @return
      */
-    @Select("select friend_id As id, isgroup As isGroup from chatlist where user_id = #{id}")
+    @Select("select friend_id As id, isgroup As isGroup from chatlist where user_id = #{id} order by last_message_time desc")
     List<ChatListId> getChatListIdById(Long id);
 
     /**
@@ -191,4 +180,21 @@ public interface UserMapper {
      */
     @Select("select avatarurl from test_user where id = #{userId}")
     String getUserAvatarUrl(Long userId);
+
+    /**
+     * 根据关键词查找用户
+     * 
+     * @param keyword
+     * @return
+     */
+    List<SearchForUserVO> searchForUsers(String keyword, Long userId);
+
+    /**
+     * 申请好友
+     * 
+     * @param friendId
+     * @param myId
+     */
+    @Insert("insert into friend_relation(user_id,friend_id,status) values (#{myId},#{friendId},2)")
+    void sendFriendRequest(Long myId, Long friendId);
 }

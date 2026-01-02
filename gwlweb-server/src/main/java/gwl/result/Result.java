@@ -2,7 +2,6 @@ package gwl.result;
 
 import lombok.Data;
 
-import java.io.Serializable;
 
 @Data
 public class Result<T> {

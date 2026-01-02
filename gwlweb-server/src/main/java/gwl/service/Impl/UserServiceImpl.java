@@ -12,17 +12,20 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import gwl.constant.MessageConstant;
 import gwl.constant.StatusConstant;
 import gwl.context.BaseContext;
-import gwl.entity.GroupChat;
+import gwl.exception.BaseException;
 import gwl.mapper.UserMapper;
-import gwl.pojo.CommonPojo.Message;
-import gwl.pojo.DTO.AddFriendToChatListDTO;
-import gwl.pojo.DTO.CreateGroupChatDTO;
-import gwl.pojo.DTO.UserInfoDTO;
-import gwl.pojo.DTO.UserLoginDTO;
-import gwl.pojo.VO.GroupChatVO;
-import gwl.pojo.VO.GroupMessagesVO;
+import gwl.pojo.dto.AddFriendToChatListDTO;
+import gwl.pojo.dto.CreateGroupChatDTO;
+import gwl.pojo.dto.UserInfoDTO;
+import gwl.pojo.dto.UserLoginDTO;
 import gwl.pojo.entity.ChatFriend;
 import gwl.pojo.entity.ChatListId;
+import gwl.pojo.entity.GroupChat;
+import gwl.pojo.entity.Message;
+import gwl.pojo.entity.User;
+import gwl.pojo.vo.GroupChatVO;
+import gwl.pojo.vo.GroupMessagesVO;
+import gwl.pojo.vo.SearchForUserVO;
 import gwl.service.CommonService;
 import gwl.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -43,21 +46,21 @@ public class UserServiceImpl implements UserService {
     private StringRedisTemplate redis;
 
     @Override
-    public gwl.entity.User userLogin(UserLoginDTO userLoginDTO) {
+    public User userLogin(UserLoginDTO userLoginDTO) {
         String emailaddress = userLoginDTO.getEmailaddress();
         String password = userLoginDTO.getPassword();
-        gwl.entity.User user = userMapper.getByUserEmail(emailaddress);
+        User user = userMapper.getByUserEmail(emailaddress);
         if (user == null) {
-            throw new RuntimeException(MessageConstant.ACCOUNT_NOT_FOUND);
+            throw new BaseException(MessageConstant.ACCOUNT_NOT_FOUND);
         }
         // 密码比对
         if (!password.equals(user.getPassword())) {
             // 密码错误
-            throw new RuntimeException(MessageConstant.PASSWORD_ERROR);
+            throw new BaseException(MessageConstant.PASSWORD_ERROR);
         }
         if (user.getStatus() == StatusConstant.DISABLE) {
             // 账号被锁定
-            throw new RuntimeException(MessageConstant.ACCOUNT_LOCKED);
+            throw new BaseException(MessageConstant.ACCOUNT_LOCKED);
         }
         // device token
         stringRedis.opsForValue().set("push_token:" + user.getId(), userLoginDTO.getPushToken());
@@ -65,13 +68,22 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 更新用户信息
+     * 获取用户信息
      * 
      * @return
      */
-    public gwl.entity.User getUserInfo() {
-        gwl.entity.User user = userMapper.getByUserId(BaseContext.getCurrentId());
-        return user;
+    public User getUserInfo() {
+        return userMapper.getByUserId(BaseContext.getCurrentId());
+    }
+
+     /**
+     * 根据id获取用户信息
+     * 
+     * @return
+     */
+    @Override
+    public User getUserInfoById(Long userId) {
+         return userMapper.getByUserId(userId);
     }
 
     /**
@@ -85,14 +97,6 @@ public class UserServiceImpl implements UserService {
     }
 
     /*
-     * 获取朋友列表
-     */
-    @Override
-    public List<gwl.entity.User> getFriendList() {
-        return userMapper.getFriendListByUserId(BaseContext.getCurrentId());
-    }
-
-    /*
      * 添加朋友或群到聊天列表
      */
     @Override
@@ -101,12 +105,11 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 获取聊天列表(朋友)
+     * 获取聊天列表
      */
     @Override
     public List<?> getChatList() {
-        // 这里获取好友的，和群的，然后放入同一个list返回
-        //
+        // 获取好友的，和群的，然后放入同一个list返回
         List<Object> result = new ArrayList<>();
         List<ChatListId> chatListIds = userMapper.getChatListIdById(BaseContext.getCurrentId());
         for (ChatListId chatListId : chatListIds) {
@@ -129,7 +132,7 @@ public class UserServiceImpl implements UserService {
             } else { // 是好友
                 ChatFriend chatFriend = userMapper.getChatFriendByChatId(chatListId.getId());
                 // 先传默认头像,测试用
-                chatFriend.setAvatarurl("https://i.pravatar.cc/150?img=3");
+                // chatFriend.setAvatarurl("https://i.pravatar.cc/150?img=3");
                 result.add(chatFriend);
             }
         }
@@ -146,10 +149,10 @@ public class UserServiceImpl implements UserService {
     public GroupChatVO createGroupChat(CreateGroupChatDTO createGroupChatDTO) {
         List<Long> groupChatMembers = createGroupChatDTO.getSelectedFriends();
         List<String> groupNameList = new ArrayList<>();
-        gwl.entity.User owner = userMapper.getByUserId(BaseContext.getCurrentId());
+        gwl.pojo.entity.User owner = userMapper.getByUserId(BaseContext.getCurrentId());
         groupNameList.add(owner.getUsername());
         for (Long memberId : groupChatMembers) {
-            gwl.entity.User groupMember = userMapper.getByUserId(memberId);
+            gwl.pojo.entity.User groupMember = userMapper.getByUserId(memberId);
             groupNameList.add(groupMember.getUsername());
         }
         String groupName = String.join(",", groupNameList);
@@ -184,13 +187,8 @@ public class UserServiceImpl implements UserService {
 
         // android推送
         for (Long id : groupChatMembers) {
-            String token = redis.opsForValue().get("push_token:" + id);
-            if (token.startsWith("android:")) {
-                commonService.sendFCMPush(token.substring(8), "chatgroup invite",
-                        owner.getUsername() + "invite you to join a chat group", "joingroup");
-            } else {
-
-            }
+            commonService.sendPush(id, "chatgroup invite",
+                    owner.getUsername() + "invite you to join a chat group", "joingroup", false);
         }
         log.info("用户" + BaseContext.getCurrentId() + "创建群聊");
         return groupChatVO;
@@ -217,9 +215,23 @@ public class UserServiceImpl implements UserService {
         return groupMessagesVOs;
     }
 
+    /**
+     * 发送群消息
+     */
     @Override
     public void saveGroupMessage(Message message) {
         userMapper.saveGroupMessage(message);
+    }
+
+    /**
+     * 根据关键词查找用户
+     * 
+     * @param keyword
+     * @return
+     */
+    @Override
+    public List<SearchForUserVO> searchForUsers(String keyword) {
+        return userMapper.searchForUsers(keyword, BaseContext.getCurrentId());
     }
 
 }

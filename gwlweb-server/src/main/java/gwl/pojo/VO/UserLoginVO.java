@@ -1,4 +1,4 @@
-package gwl.pojo.VO;
+package gwl.pojo.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -10,16 +10,16 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "获取好友列表VO")
+@Schema(description = "用户登录VO")
 public class UserLoginVO {
-    @Schema(description = "姓名")
-    private String name;
+    @Schema(description = "用户id")
+    private Long id;
+    @Schema(description = "邮箱地址")
+    private String emailaddress;
     @Schema(description = "jwt令牌")
     private String token;
     @Schema(description = "用户名")
     private String userName;
     @Schema(description = "avatarUrl")
     private String avatarUrl;
-    @Schema(description = "主键值")
-    private Long id;
 }
