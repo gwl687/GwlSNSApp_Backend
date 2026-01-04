@@ -4,18 +4,32 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import org.checkerframework.checker.units.qual.m;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.google.firebase.messaging.FirebaseMessagingException;
+
+import gwl.constant.BaseConstant;
+import gwl.constant.MailConstant;
 import gwl.constant.MessageConstant;
 import gwl.constant.StatusConstant;
 import gwl.context.BaseContext;
 import gwl.exception.BaseException;
+import gwl.mapper.FriendMapper;
 import gwl.mapper.UserMapper;
 import gwl.pojo.dto.AddFriendToChatListDTO;
 import gwl.pojo.dto.CreateGroupChatDTO;
+import gwl.pojo.dto.RegisterDTO;
 import gwl.pojo.dto.UserInfoDTO;
 import gwl.pojo.dto.UserLoginDTO;
 import gwl.pojo.entity.ChatFriend;
@@ -26,6 +40,7 @@ import gwl.pojo.entity.User;
 import gwl.pojo.vo.GroupChatVO;
 import gwl.pojo.vo.GroupMessagesVO;
 import gwl.pojo.vo.SearchForUserVO;
+import gwl.properties.MailProperties;
 import gwl.service.CommonService;
 import gwl.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +58,16 @@ public class UserServiceImpl implements UserService {
     private CommonService commonService;
 
     @Autowired
-    private StringRedisTemplate redis;
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private MailProperties mailProperties;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Autowired
+    private FriendMapper friendMapper;
 
     @Override
     public User userLogin(UserLoginDTO userLoginDTO) {
@@ -68,6 +92,105 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * 发送验证码
+     * 
+     * @param emailaddress
+     */
+    @Override
+    public void sendVerificationCode(String emailaddress) {
+        User user = userMapper.getByUserEmail(emailaddress);
+        // 用户已注册
+        if (user != null) {
+            throw new BaseException(MessageConstant.EMAIL_REGISTERD);
+        }
+        // 60秒以内不能重复发给同一邮箱
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey("verifycodeCd:" + emailaddress))) {
+            throw new BaseException(MessageConstant.REPEAT_SENDVERITY_REQUEST);
+        }
+        // generate token
+        Random random = new Random();
+        int num = random.nextInt(1_000_000); // 0 - 999999
+        String verifyCode = String.format("%06d", num);
+        // save verification code to redis
+        stringRedisTemplate.opsForValue().set("verifycode:" + emailaddress, verifyCode, 3, TimeUnit.MINUTES);
+        // save cooldown to redis
+        stringRedisTemplate.opsForValue().set("verifycodeCd:" + emailaddress, verifyCode, 60, TimeUnit.SECONDS);
+        // send mail
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailProperties.getSenderEmailaddress()); // sernder emailaddress
+        message.setTo(emailaddress); // accepter
+        message.setSubject(MailConstant.VERIFICODE); // topic
+        message.setText(verifyCode); // context mailSender.send(message);
+        mailSender.send(message);
+    }
+
+    /**
+     * 注册
+     * 
+     * @param registerDTO
+     */
+    @Override
+    public void register(RegisterDTO registerDTO) {
+        // 判断邮箱是否已注册
+        User user = userMapper.getByUserEmail(registerDTO.getEmailaddress());
+        if (user != null) {
+            throw new BaseException(MessageConstant.EMAIL_REGISTERD);
+        }
+        // 判断验证码是否正确
+        String verifyCode = stringRedisTemplate.opsForValue().get("verifycode:" + registerDTO.getEmailaddress());
+        String receivedVerifyCode = registerDTO.getVerificationCode();
+        if (verifyCode == null || !verifyCode.equals(receivedVerifyCode)) {
+            throw new BaseException(MessageConstant.VERIFICATION_WRONG);
+        }
+        // 把新用户数据保存进mysql
+        String userName = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        user = User.builder()
+                .emailaddress(registerDTO.getEmailaddress())
+                .password(registerDTO.getPassword())
+                .username(userName)
+                .avatarurl(BaseConstant.DEFAULTAVATARURL)
+                .status(1)
+                .build();
+        userMapper.insert(user);
+    }
+
+    /**
+     * 改名
+     * 
+     * @param registerDTO
+     */
+    @Override
+    public void changeUsername(String userName) {
+        // 改自己名字
+        userMapper.changeUsername(userName, BaseContext.getCurrentId());
+        // 改和自己相关的群名
+        List<Long> myGroupIds = userMapper.getMyGroupIds(BaseContext.getCurrentId());
+        for (Long myGroupId : myGroupIds) {
+            List<String> memberNames = friendMapper.getMemberNames(myGroupId);
+            String newGroupName = String.join(",", memberNames);
+            friendMapper.changeGroupName(myGroupId, newGroupName);
+        }
+        // 静默推送给好友
+        List<Long> myFriendIds = userMapper.getMyFriendIds(BaseContext.getCurrentId());
+        for (Long friendId : myFriendIds) {
+            commonService.sendPush(friendId, BaseContext.getCurrentId(), "", "", "friendinfochange", true);
+        }
+    }
+
+    /**
+     * 上传新头像
+     */
+    @Override
+    public void uploadAvatar(MultipartFile file) {
+        String uploadKey = "avatar/" + BaseContext.getCurrentId() + "_" + System.currentTimeMillis();
+        commonService.uploadToS3(file, uploadKey);
+        List<User> myFriends = friendMapper.getFriendListByUserId(BaseContext.getCurrentId());
+        for (User myFriend : myFriends) {
+            commonService.sendPush(myFriend.getId(), BaseContext.getCurrentId(), "", "", "friendinfochange", true);
+        }
+    }
+
+    /**
      * 获取用户信息
      * 
      * @return
@@ -76,14 +199,14 @@ public class UserServiceImpl implements UserService {
         return userMapper.getByUserId(BaseContext.getCurrentId());
     }
 
-     /**
+    /**
      * 根据id获取用户信息
      * 
      * @return
      */
     @Override
     public User getUserInfoById(Long userId) {
-         return userMapper.getByUserId(userId);
+        return userMapper.getByUserId(userId);
     }
 
     /**
@@ -187,7 +310,7 @@ public class UserServiceImpl implements UserService {
 
         // android推送
         for (Long id : groupChatMembers) {
-            commonService.sendPush(id, "chatgroup invite",
+            commonService.sendPush(id, BaseContext.getCurrentId(), "chatgroup invite",
                     owner.getUsername() + "invite you to join a chat group", "joingroup", false);
         }
         log.info("用户" + BaseContext.getCurrentId() + "创建群聊");

@@ -2,9 +2,9 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="gwl.mapper.UserMapper">
   <!-- 注册用户 -->
-  <insert id="insert" useGeneratedKeys="true" keyProperty="id"> insert into
-    user(username,password,emailaddress,sex,status,create_time,update_time) values (
-    #{username},#{password}, #{emailadress}, #{sex}, #{status}, #{createTime}, #{updateTime}) </insert>
+  <insert id="insert" parameterType="gwl.pojo.entity.User"> insert into
+    test_user(username,password,emailaddress,status,avatarurl) values ( #{username},#{password},
+    #{emailaddress}, #{status},#{avatarurl}) </insert>
   <!-- 建群 -->
   <insert id="createGroupChat" parameterType="gwl.pojo.entity.GroupChat" useGeneratedKeys="true"
     keyProperty="groupId"> INSERT INTO chatgroups (name,owner_id) VALUES (#{groupName},#{ownerId}); </insert>
@@ -29,26 +29,10 @@
     LEFT JOIN group_members m ON g.id = m.group_id WHERE g.id = #{id} GROUP BY g.id; </select>
   <!-- 根据关键词查找用户 -->
   <select id="searchForUsers"
-        resultType="gwl.pojo.vo.SearchForUserVO">
-    SELECT
-        u.id as userId,
-        u.username as username,
-        u.sex as sex,
-        u.emailaddress as emailaddress,
-        u.avatarurl as avatarurl,
-        fr.status as status
-    FROM test_user u
-    LEFT JOIN friend_relation fr
-        ON fr.user_id = #{userId}
-       AND fr.friend_id = u.id
-    WHERE u.id != #{userId}
-      AND (
-            u.id = #{keyword}
-         OR u.username LIKE CONCAT('%', #{keyword}, '%')
-      )
-      AND (fr.status IS NULL OR fr.status != 1)
-    ORDER BY u.create_time DESC
-    LIMIT 10
-</select>
+    resultType="gwl.pojo.vo.SearchForUserVO"> SELECT u.id as userId, u.username as username, u.sex
+    as sex, u.emailaddress as emailaddress, u.avatarurl as avatarurl, fr.status as status FROM
+    test_user u LEFT JOIN friend_relation fr ON fr.user_id = #{userId} AND fr.friend_id = u.id WHERE
+    u.id != #{userId} AND ( u.id = #{keyword} OR u.username LIKE CONCAT('%', #{keyword}, '%') ) AND
+    (fr.status IS NULL OR fr.status != 1) ORDER BY u.create_time DESC LIMIT 10 </select>
 
 </mapper>

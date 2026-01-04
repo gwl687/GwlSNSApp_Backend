@@ -155,7 +155,7 @@ public class TimelineServiceImpl implements TimelineService {
             // 发送 iOS / Android 推送通知
             String title = publisherName + " posted a new timeline";
             String type = "timelinepost";
-            commonService.sendPush(fanId, title, content, type, false);
+            commonService.sendPush(fanId, BaseContext.getCurrentId(), title, content, type, false);
         }
     }
 

@@ -46,15 +46,7 @@ public class DispatcherHandler extends SimpleChannelInboundHandler<TextWebSocket
             throws JsonMappingException, JsonProcessingException {
         String text = msg.text();
         JsonNode jsonData = CommonUtil.mapper.readTree(text);
-        String type = jsonData.get("type").asText();
         log.info("收到消息" + msg);
-        // switch (type) {
-        // case "command":
-        // ctx.fireChannelRead(new WebCommand(jsonData)); // send to CommandHandler
-        // break;
-        // default:
-        // ctx.fireChannelRead(new Message(jsonData)); // send to ChatHandler
-        // }
         ctx.fireChannelRead(new Message(jsonData)); // send to ChatHandler
     }
 }

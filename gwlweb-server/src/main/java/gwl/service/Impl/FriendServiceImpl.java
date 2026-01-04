@@ -53,7 +53,8 @@ public class FriendServiceImpl implements FriendService {
         // 更新friend_relation状态
         userMapper.sendFriendRequest(BaseContext.getCurrentId(), userId);
         // 推送消息
-        commonService.sendPush(userId, "a new friend request", "user " + userName + " has sent you a friend request",
+        commonService.sendPush(userId, BaseContext.getCurrentId(), "a new friend request",
+                "user " + userName + " has sent you a friend request",
                 "friendrequest", true);
     }
 
@@ -66,7 +67,8 @@ public class FriendServiceImpl implements FriendService {
     public void friendRequestResponse(Long friendId, Integer res) {
         friendMapper.friendRequestResponse(BaseContext.getCurrentId(), friendId, res);
         String type = "friendRequestResponse";
-        commonService.sendPush(friendId, "friendRequestResponse", res.toString(), type, true);
+        commonService.sendPush(friendId, BaseContext.getCurrentId(), "friendRequestResponse", res.toString(), type,
+                true);
     }
 
     /**

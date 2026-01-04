@@ -77,7 +77,7 @@ public class TimelineController {
     }
 
     /**
-     * 给帖子点赞
+     * hitlike
      * 
      * @return
      */
@@ -89,7 +89,7 @@ public class TimelineController {
     }
 
     /**
-     * 给帖子评论
+     * post a comment
      * 
      * @return
      */

@@ -5,7 +5,6 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
-
 import gwl.pojo.dto.AddFriendToChatListDTO;
 import gwl.pojo.dto.UserInfoDTO;
 import gwl.pojo.entity.ChatFriend;
@@ -37,6 +36,22 @@ public interface UserMapper {
     void insert(User user);
 
     /**
+     * 改名
+     * 
+     * @param userName
+     */
+    @Update("update test_user set username = #{userName} where id = #{userId}")
+    void changeUsername(String userName, Long userId);
+
+    /**
+     * 更新头像url
+     * 
+     * @param avatarUrl
+     */
+    @Update("update test_user set avatarurl = #{avatarUrl} where id = #{myId}")
+    void updateAvatarUrl(Long myId, String avatarUrl);
+
+    /**
      * 根据邮箱获取用户信息
      * 
      * @param emailaddress
@@ -46,6 +61,24 @@ public interface UserMapper {
     User getByUserEmail(String emailaddress);
 
     /**
+     * 遍历有自己的群id
+     * 
+     * @param emailaddress
+     * @return
+     */
+    @Select("select group_id from group_members where user_id = #{myId}")
+    List<Long> getMyGroupIds(Long myId);
+
+    /**
+     * 遍历有自己的朋友id
+     * 
+     * @param emailaddress
+     * @return
+     */
+    @Select("select friend_id from friend_relation where user_id = #{myId}")
+    List<Long> getMyFriendIds(Long myId);
+
+    /**
      * 根据id获取用户信息
      * 
      * @param id
@@ -53,7 +86,6 @@ public interface UserMapper {
      */
     @Select("select * from test_user  where id = #{id}")
     User getByUserId(Long id);
-
 
     /**
      * 更新用户信息

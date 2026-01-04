@@ -32,5 +32,5 @@ public interface CommonService {
      * @throws IOException
      * @throws FirebaseMessagingException
      */
-    void sendPush(Long userId, String title, String content, String type, Boolean silent);
+    void sendPush(Long userId, Long fromUser, String title, String content, String type, Boolean silent);
 }

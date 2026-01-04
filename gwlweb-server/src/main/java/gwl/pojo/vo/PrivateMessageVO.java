@@ -1,5 +1,6 @@
 package gwl.pojo.vo;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
@@ -17,5 +18,5 @@ public class PrivateMessageVO {
     Long senderId;
     String content;
     String type;
-    LocalDateTime createTime;
+    Instant createTime;
 }

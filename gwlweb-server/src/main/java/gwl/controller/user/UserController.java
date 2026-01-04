@@ -8,12 +8,14 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import gwl.context.BaseContext;
 import gwl.mapper.UserMapper;
+import gwl.pojo.dto.RegisterDTO;
 import gwl.pojo.dto.UserInfoDTO;
 import gwl.pojo.dto.UserLoginDTO;
 import gwl.pojo.entity.User;
@@ -50,7 +52,7 @@ public class UserController {
      */
     @PostMapping(path = "/login", produces = "application/json")
     @Operation(summary = "用户登录相关")
-    Result<UserLoginVO> Login(@org.springframework.web.bind.annotation.RequestBody UserLoginDTO userLoginDTO) {
+    Result<UserLoginVO> Login(@RequestBody UserLoginDTO userLoginDTO) {
         log.info("用户登录：{}", userLoginDTO);
         User user = userService.userLogin(userLoginDTO);
         redis.opsForValue().set("push_token:" + user.getId(), userLoginDTO.getPushToken());
@@ -95,18 +97,48 @@ public class UserController {
         return Result.success(userService.updateUserInfo(userInfoDTO));
     }
 
-    // 发送验证码
-    Result<Void> sendVerificationCode() {
-        return Result.success();
-    }
-
-    // 注册
-    Result<Void> userRegister() {
+    /**
+     * 发送验证码
+     * 
+     * @return
+     */
+    @PostMapping(path = "/sendverificationcode", produces = "application/json")
+    @Operation(summary = "sendverificationcod")
+    Result<Void> sendVerificationCode(@RequestParam String emailaddress) {
+        System.out.println("发送验证码:" + emailaddress);
+        userService.sendVerificationCode(emailaddress);
         return Result.success();
     }
 
     /**
-     * 上传头像
+     * 注册
+     * 
+     * @param registerDTO
+     * @return
+     */
+    @PostMapping(path = "/register", produces = "application/json")
+    @Operation(summary = "Register")
+    Result<Void> userRegister(@RequestBody RegisterDTO registerDTO) {
+        userService.register(registerDTO);
+        return Result.success();
+    }
+
+
+    /**
+     * 改名
+     * 
+     * @param registerDTO
+     * @return
+     */
+    @PostMapping(path = "/changeusername", produces = "application/json")
+    @Operation(summary = "changeUsername")
+    Result<Void> changeUsername(@RequestParam String newUsername) {
+        userService.changeUsername(newUsername);
+        return Result.success();
+    }
+
+    /**
+     * 上传新头像
      * 
      * @param file
      * @return
@@ -115,8 +147,8 @@ public class UserController {
     @PutMapping(path = "/uploadavatar", produces = "application/json")
     @Operation(summary = "upload avatar")
     Result<Boolean> uploadAvatar(@RequestParam("file") MultipartFile file) {
-        String uploadKey = "avatar/" + BaseContext.getCurrentId();
-        commonService.uploadToS3(file, uploadKey);
+        userService.uploadAvatar(file);
+
         return Result.success(true);
     }
 

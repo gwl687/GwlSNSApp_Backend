@@ -2,8 +2,11 @@ package gwl.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import gwl.pojo.dto.AddFriendToChatListDTO;
 import gwl.pojo.dto.CreateGroupChatDTO;
+import gwl.pojo.dto.RegisterDTO;
 import gwl.pojo.dto.UserInfoDTO;
 import gwl.pojo.dto.UserLoginDTO;
 import gwl.pojo.entity.GroupChat;
@@ -22,6 +25,34 @@ public interface UserService {
    */
   User userLogin(UserLoginDTO userLoginDTO);
 
+  /**
+   * 发送验证码
+   * 
+   * @param emailaddress
+   */
+  void sendVerificationCode(String emailaddress);
+
+  /**
+   * 注册
+   * 
+   * @param registerDTO
+   */
+  void register(RegisterDTO registerDTO);
+
+  /**
+   * 改名
+   * 
+   * @param registerDTO
+   */
+  void changeUsername(String userName);
+
+   /**
+   * 上传新头像
+   * 
+   * @param registerDTO
+   */
+  void uploadAvatar(MultipartFile file);
+
   /*
    * 获取用户信息
    */
@@ -38,7 +69,6 @@ public interface UserService {
    * @return
    */
   Boolean updateUserInfo(UserInfoDTO userInfoDTO);
-
 
   /**
    * 添加朋友或群到聊天列表

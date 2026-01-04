@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.ApsAlert;
@@ -20,6 +23,7 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import gwl.properties.AwsProperties;
 import gwl.context.BaseContext;
+import gwl.mapper.UserMapper;
 import gwl.service.CommonService;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -39,6 +43,8 @@ public class CommonServiceImpl implements CommonService {
     private StringRedisTemplate templateRedis;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private UserMapper userMapper;
 
     @Override
     public Boolean uploadToS3(MultipartFile file, String key) {
@@ -63,6 +69,7 @@ public class CommonServiceImpl implements CommonService {
             System.out.println("上传头像: " + key);
             templateRedis.opsForValue().set("useravatarurl:" + BaseContext.getCurrentId(), avartarUrl);
         }
+        userMapper.updateAvatarUrl(BaseContext.getCurrentId(), aws.getUrl() + key);
         System.out.println("上传成功: " + key);
         return true;
     }
@@ -104,6 +111,7 @@ public class CommonServiceImpl implements CommonService {
      */
     public void sendPush(
             Long userId,
+            Long fromUser,
             String title,
             String content,
             String type,
@@ -117,6 +125,7 @@ public class CommonServiceImpl implements CommonService {
         data.put("type", type);
         data.put("title", title);
         data.put("content", content);
+        data.put("fromUser",fromUser.toString());
         Message.Builder builder = Message.builder()
                 .setToken(deviceToken)
                 .putAllData(data);
@@ -137,6 +146,17 @@ public class CommonServiceImpl implements CommonService {
                                     .setTitle(title)
                                     .setBody(content)
                                     .build())
+                    .setAndroidConfig(
+                            AndroidConfig.builder()
+                                    .setPriority(AndroidConfig.Priority.HIGH)
+                                    .setNotification(
+                                            AndroidNotification.builder()
+                                                    .setTitle(title)
+                                                    .setBody(content)
+                                                    .setChannelId("default_channel") 
+                                                    .setSound("default")
+                                                    .build())
+                                    .build())
                     .setApnsConfig(
                             ApnsConfig.builder()
                                     .setAps(
@@ -155,7 +175,7 @@ public class CommonServiceImpl implements CommonService {
             String response = FirebaseMessaging.getInstance().send(builder.build());
             log.info("FCM response: {}", response);
         } catch (Exception e) {
-            log.error("FCM push error, token={}", deviceToken, e);
+            log.error("FCM push error, token={}", deviceToken);
         }
     }
 }

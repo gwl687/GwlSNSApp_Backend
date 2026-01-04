@@ -3,7 +3,6 @@ package gwl.infrastructure.NettyHandler;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import gwl.infrastructure.Manager.ChannelManager;
 import gwl.mapper.ChatMessageMapper;
 import gwl.mapper.UserMapper;
@@ -46,44 +45,33 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
         msg.setFromUser(fromUser);
         String sendMessage = CommonUtil.mapper.writeValueAsString(msg);
         System.out.println("sendMessage=" + sendMessage);
-
-        if ("private".equals(type)) { // 单对单消息
-            log.info("收到私聊消息: " + msg.getContent());
-            // 存数据库
-            chatMessageMapper.sendPrivateMessage(fromUser, toUser, content);
-            chatMessageMapper.updateLastMessageTime(fromUser, toUser);
-            // 对方在线的话，长连接发消息并推送
-            Channel toChannel = ChannelManager.userChannelMap.get(toUser);
-            if (toChannel != null && toChannel.isActive()) {
+        Channel toChannel = ChannelManager.userChannelMap.get(toUser);
+        // 对方在线的话，长连接发消息
+        if (toChannel != null && toChannel.isActive()) {
+            toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
+        }
+        switch (type) {
+            // 私聊
+            case "private":
+                log.info("收到私聊消息: " + msg.getContent());
+                // 存数据库
+                chatMessageMapper.sendPrivateMessage(fromUser, toUser, content);
+                chatMessageMapper.updateLastMessageTime(fromUser, toUser);
                 // FCMpush
                 User user = userService.getUserInfoById(fromUser);
-                commonService.sendPush(toUser, user.getUsername(), content, "privatemessage", false);
-                // websocket
-                toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
-                log.info("用户" + msg.getFromUser() + "说: " + content);
-            }
-        } else if ("group".equals(type)) { // 群聊消息
-            log.info("收到群聊消息: " + msg.getContent());
-            userService.saveGroupMessage(msg);
-            List<Long> memberIds = userMapper.getGroupMemberIds(toUser);
-            boolean isSaved = false;
-            for (Long memberId : memberIds) {
-                if (memberId != fromUser) {
-                    Channel toChannel = ChannelManager.userChannelMap.get(memberId);
-                    // 给群里在线用户发消息
-                    if (toChannel != null && toChannel.isActive()) {
-                        toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
-                        log.info("用户" + msg.getFromUser() + "说: " + content);
-                    }
-                }
-                // log.info("用户" + toUser + "不在线,发送消息到服务器后端数据库暂存");
-            }
-        } else { // command
-            log.info("收到command " + msg.getContent());
-            Channel toChannel = ChannelManager.userChannelMap.get(toUser);
-            if (toChannel != null && toChannel.isActive()) {
-                toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
-            }
+                
+                commonService.sendPush(toUser, fromUser, user.getUsername(), content, "privatemessage", false);
+                break;
+            // 群聊
+            case "group":
+
+                break;
+            // 视频聊天请求
+            case "videochatrequest":
+                commonService.sendPush(toUser, fromUser, "video chat request", content, "videochatrequest", false);
+                break;
+            default:
+                break;
         }
     }
 }
