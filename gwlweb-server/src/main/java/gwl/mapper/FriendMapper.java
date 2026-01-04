@@ -40,6 +40,7 @@ public interface FriendMapper {
          * @param friendId
          * @param res
          */
+        
         void friendRequestResponse(Long myId, Long friendId, Integer res);
 
         /**

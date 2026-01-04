@@ -8,17 +8,16 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import org.checkerframework.checker.units.qual.m;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import com.google.firebase.messaging.FirebaseMessagingException;
-
 import gwl.constant.BaseConstant;
 import gwl.constant.MailConstant;
 import gwl.constant.MessageConstant;
@@ -36,6 +35,8 @@ import gwl.pojo.entity.ChatFriend;
 import gwl.pojo.entity.ChatListId;
 import gwl.pojo.entity.GroupChat;
 import gwl.pojo.entity.Message;
+import gwl.pojo.entity.TimelinePushEvent;
+import gwl.pojo.entity.UpdateUserInfoPushEvent;
 import gwl.pojo.entity.User;
 import gwl.pojo.vo.GroupChatVO;
 import gwl.pojo.vo.GroupMessagesVO;
@@ -68,6 +69,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private FriendMapper friendMapper;
+
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     public User userLogin(UserLoginDTO userLoginDTO) {
@@ -170,11 +174,14 @@ public class UserServiceImpl implements UserService {
             String newGroupName = String.join(",", memberNames);
             friendMapper.changeGroupName(myGroupId, newGroupName);
         }
-        // 静默推送给好友
-        List<Long> myFriendIds = userMapper.getMyFriendIds(BaseContext.getCurrentId());
-        for (Long friendId : myFriendIds) {
-            commonService.sendPush(friendId, BaseContext.getCurrentId(), "", "", "friendinfochange", true);
-        }
+        // 推送给好友
+        List<Long> friendIds = userMapper.getMyFriendIds(BaseContext.getCurrentId());
+        UpdateUserInfoPushEvent event = UpdateUserInfoPushEvent.builder()
+                .fromUser(BaseContext.getCurrentId())
+                .friendIds(friendIds).build();
+        kafkaTemplate.send(
+                "update_user_info",
+                event);
     }
 
     /**
@@ -184,9 +191,30 @@ public class UserServiceImpl implements UserService {
     public void uploadAvatar(MultipartFile file) {
         String uploadKey = "avatar/" + BaseContext.getCurrentId() + "_" + System.currentTimeMillis();
         commonService.uploadToS3(file, uploadKey);
+        // 推送给好友
         List<User> myFriends = friendMapper.getFriendListByUserId(BaseContext.getCurrentId());
-        for (User myFriend : myFriends) {
-            commonService.sendPush(myFriend.getId(), BaseContext.getCurrentId(), "", "", "friendinfochange", true);
+        List<Long> friendIds = myFriends.stream()
+                .map(User::getId)
+                .toList();
+        UpdateUserInfoPushEvent event = UpdateUserInfoPushEvent.builder()
+                .fromUser(BaseContext.getCurrentId())
+                .friendIds(friendIds).build();
+        kafkaTemplate.send(
+                "update_user_info",
+                event);
+    }
+
+    /**
+     * 更新用户信息的推送
+     * 
+     * @param event
+     */
+    @Override
+    @KafkaListener(topics = "update_user_info", groupId = "update_user_info_group")
+    public void onUpdateUserInfoPush(@Payload UpdateUserInfoPushEvent event) {
+        for (Long friendId : event.getFriendIds()) {
+            commonService.sendPush(friendId, event.getFromUser(), "", "",
+                    "friendinfochange", true);
         }
     }
 

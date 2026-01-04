@@ -2,6 +2,7 @@ package gwl.service;
 
 import java.util.List;
 
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.multipart.MultipartFile;
 
 import gwl.pojo.dto.AddFriendToChatListDTO;
@@ -11,6 +12,7 @@ import gwl.pojo.dto.UserInfoDTO;
 import gwl.pojo.dto.UserLoginDTO;
 import gwl.pojo.entity.GroupChat;
 import gwl.pojo.entity.Message;
+import gwl.pojo.entity.UpdateUserInfoPushEvent;
 import gwl.pojo.entity.User;
 import gwl.pojo.vo.GroupChatVO;
 import gwl.pojo.vo.GroupMessagesVO;
@@ -121,4 +123,9 @@ public interface UserService {
    */
   List<SearchForUserVO> searchForUsers(String keyword);
 
+  /**
+   * 更新用户信息的推送
+   * @param event
+   */
+  public void onUpdateUserInfoPush(@Payload UpdateUserInfoPushEvent event);
 }

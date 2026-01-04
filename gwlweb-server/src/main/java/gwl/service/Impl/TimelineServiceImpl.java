@@ -120,6 +120,7 @@ public class TimelineServiceImpl implements TimelineService {
             int end = Math.min(i + batchSize, friendIds.size());
             List<Long> batch = friendIds.subList(i, end).stream().map(Long::valueOf).toList();
             TimelinePushEvent timelinePushEvent = TimelinePushEvent.builder()
+                    .fromUser(BaseContext.getCurrentId())
                     .postId(postId)
                     .fanIds(batch)
                     .publisherName(publisherName)
@@ -135,10 +136,11 @@ public class TimelineServiceImpl implements TimelineService {
     // 推送给粉丝的消费者
     @Override
     @KafkaListener(topics = "timeline_publish", groupId = "timeline_publish_group")
-    public void onTimelinePush(@Payload TimelinePushEvent event) throws IOException, FirebaseMessagingException {
+    public void onTimelinePush(@Payload TimelinePushEvent event) {
         // 推送给多个好友
         Long postId = event.getPostId();
         List<Long> fanIds = event.getFanIds();
+        Long fromUser = event.getFromUser();
         String publisherName = event.getPublisherName();
         String content = event.getContent();
         LocalDateTime createdAt = event.getCreatedAt();
@@ -155,7 +157,7 @@ public class TimelineServiceImpl implements TimelineService {
             // 发送 iOS / Android 推送通知
             String title = publisherName + " posted a new timeline";
             String type = "timelinepost";
-            commonService.sendPush(fanId, BaseContext.getCurrentId(), title, content, type, false);
+            commonService.sendPush(fanId, fromUser, title, content, type, false);
         }
     }
 
@@ -168,7 +170,8 @@ public class TimelineServiceImpl implements TimelineService {
         List<Long> timelineIds = timelineMapper.getTimelineIds(BaseContext.getCurrentId(), limit, cursor);
         for (Long timelineId : timelineIds) {
             // redis里有数据就取redis的
-            if (redis.hasKey("timeline:post:" + timelineId)) {
+            // aiven的redis太慢暂时改成mysql
+            if (!redis.hasKey("timeline:post:" + timelineId)) {
                 Map<Object, Object> map = redis.opsForHash().entries("timeline:post:" + timelineId);
                 String userName = map.get("userName").toString();
                 String context = map.get("context").toString();

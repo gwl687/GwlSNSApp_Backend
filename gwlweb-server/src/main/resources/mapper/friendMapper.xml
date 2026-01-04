@@ -21,7 +21,9 @@
               and status = 2;
             <!-- 插入反向好友关系 -->
             insert into friend_relation (user_id, friend_id, status)
-            values (#{myId}, #{friendId}, 1);
+            values (#{myId}, #{friendId}, 1)
+                on duplicate key update
+                status = 1;
         </if>
     </update>
 </mapper>
