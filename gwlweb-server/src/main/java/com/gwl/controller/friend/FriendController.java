@@ -77,7 +77,6 @@ public class FriendController {
                 searchForUserVOs.add(searchForUserVO);
             }
         }
-        System.out.println("正在申请成为我好友的用户数:" + searchForUserVOs.size());
         return Result.success(searchForUserVOs);
     }
 
