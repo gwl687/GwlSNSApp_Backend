@@ -20,37 +20,37 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-    #   - name: Build with Maven
-    #     run: mvn clean install -DskipTests
+      - name: Build with Maven
+        run: mvn clean install -DskipTests
 
-    #   - name: Copy & Deploy JAR to Server
-    #     uses: appleboy/scp-action@v0.1.7 
-    #     with:
-    #       host: ${{ secrets.SERVER_HOST }}
-    #       username: ${{ secrets.SERVER_USER }}
-    #       key: ${{ secrets.SERVER_KEY }}
-    #       source: "gwl-server/target/*.jar"
-    #       target: "/jarProject/demo1"
-    #       strip_components: 2
+      - name: Copy & Deploy JAR to Server
+        uses: appleboy/scp-action@v0.1.7 
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_KEY }}
+          source: "gwl-server/target/*.jar"
+          target: "/jarProject/demo1"
+          strip_components: 2
 
-    #   - name: Restart Spring Boot on server
-    #     uses: appleboy/ssh-action@v1.2.0
-    #     with:
-    #       host: ${{ secrets.SERVER_HOST }}
-    #       username: ${{ secrets.SERVER_USER }}
-    #       key: ${{ secrets.SERVER_KEY }}
-    #       script: |
-    #         echo "Killing old process..."
-    #         PID=$(ps -ef | grep gwl-server | grep -v grep | awk '{print $2}')
-    #         if [ -n "$PID" ]; then
-    #           sudo kill -9 $PID
-    #           echo "Old app stopped: $PID"
-    #         else
-    #           echo "No running process found."
-    #         fi
+      - name: Restart Spring Boot on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_KEY }}
+          script: |
+            echo "Killing old process..."
+            PID=$(ps -ef | grep gwl-server | grep -v grep | awk '{print $2}')
+            if [ -n "$PID" ]; then
+              sudo kill -9 $PID
+              echo "Old app stopped: $PID"
+            else
+              echo "No running process found."
+            fi
 
-    #         echo "Starting new app..."
-    #         cd /jarProject/sns-demo/
-    #         JAR=$(ls gwl-server*.jar | head -n 1)
-    #         nohup java -jar "$JAR" >> app.log 2>&1 < /dev/null &
-    #         echo "New app started: $JAR"
+            echo "Starting new app..."
+            cd /jarProject/sns-demo/
+            JAR=$(ls gwl-server*.jar | head -n 1)
+            nohup java -jar "$JAR" >> app.log 2>&1 < /dev/null &
+            echo "New app started: $JAR"

@@ -4,3 +4,4 @@ gwlweb-server/src/main/resources/firebase-service-account.json
 
 gwlweb-server/src/main/resources/application.yml
 gwlweb-server/src/main/resources/application-prod.yml
+gwlweb-server/.github/workflows/backend-cli.yml
