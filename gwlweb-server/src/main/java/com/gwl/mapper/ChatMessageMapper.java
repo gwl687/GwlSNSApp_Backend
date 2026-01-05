@@ -1,0 +1,34 @@
+package com.gwl.mapper;
+
+import java.util.List;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import com.gwl.pojo.dto.SendPrivateMessageDTO;
+import com.gwl.pojo.vo.PrivateMessageVO;
+
+@Mapper
+public interface ChatMessageMapper {
+    /**
+     * 发送私聊消息
+     * 
+     * @param sendPrivateMessageDTO
+     */
+    void sendPrivateMessage(Long myId, Long friendId, String context);
+
+    /**
+     * 更新聊天列表最后时间
+     * 
+     * @param friendOrGroupId
+     */
+    void updateLastMessageTime(Long myId, Long friendOrGroupId);
+
+    /**
+     * 获取聊天列表里的全部私聊消息
+     * 
+     * @return
+     */
+    List<PrivateMessageVO> getPrivateMessages(Long myId);
+}
