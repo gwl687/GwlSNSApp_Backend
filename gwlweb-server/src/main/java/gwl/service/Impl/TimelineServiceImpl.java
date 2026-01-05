@@ -136,7 +136,7 @@ public class TimelineServiceImpl implements TimelineService {
         }
     }
 
-    // 推送给粉丝的消费者
+    // 推送给粉丝的消费者/
     @Override
     @KafkaListener(topics = "timeline_publish", groupId = "timeline_publish_group")
     public void onTimelinePush(@Payload TimelinePushEvent event) {
