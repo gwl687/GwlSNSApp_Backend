@@ -1,7 +1,6 @@
 package gwl.service.Impl;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -116,12 +115,10 @@ public class TimelineServiceImpl implements TimelineService {
         for (User f : friends) {
             friendIds.add(f.getId());
         }
-        log.info("遍历friendIds:{}", friendIds);
         int batchSize = 1000;
         for (int i = 0; i < friendIds.size(); i += batchSize) {
             int end = Math.min(i + batchSize, friendIds.size());
             List<Long> batch = friendIds.subList(i, end).stream().map(Long::valueOf).toList();
-            log.info("遍历batch:{}", batch);
             TimelinePushEvent timelinePushEvent = TimelinePushEvent.builder()
                     .fromUser(BaseContext.getCurrentId())
                     .postId(postId)
@@ -146,12 +143,11 @@ public class TimelineServiceImpl implements TimelineService {
         Long fromUser = event.getFromUser();
         String publisherName = event.getPublisherName();
         String content = event.getContent();
-        Instant createdAt = event.getCreatedAt();
+        LocalDateTime createdAt = event.getCreatedAt();
         if (fanIds == null || fanIds.isEmpty()) {
             return;
         }
         // 将帖子推送到每个粉丝的 Redis 时间线
-        log.info("遍历fanIds:{}", fanIds);
         for (Long fanId : fanIds) {
             String key = "timeline:user:" + fanId;
             // 将 postId 放到用户时间线头部
@@ -169,12 +165,13 @@ public class TimelineServiceImpl implements TimelineService {
      * 获取帖子(刷新)
      */
     @Override
-    public List<TimelineVO> getTimelinePost(Integer limit, Instant cursor) {
+    public List<TimelineVO> getTimelinePost(Integer limit, LocalDateTime cursor) {
         List<TimelineVO> timelineVOs = new ArrayList<>();
         List<Long> timelineIds = timelineMapper.getTimelineIds(BaseContext.getCurrentId(), limit, cursor);
         for (Long timelineId : timelineIds) {
             // redis里有数据就取redis的
-            if (redis.hasKey("timeline:post:" + timelineId)) {
+            // aiven的redis太慢暂时改成mysql
+            if (!redis.hasKey("timeline:post:" + timelineId)) {
                 Map<Object, Object> map = redis.opsForHash().entries("timeline:post:" + timelineId);
                 String userName = map.get("userName").toString();
                 String context = map.get("context").toString();
@@ -182,7 +179,7 @@ public class TimelineServiceImpl implements TimelineService {
                 List<String> imgUrls = imgUrlsObj == null
                         ? Collections.emptyList()
                         : JSON.parseArray(imgUrlsObj.toString(), String.class);
-                Instant createdAt = Instant.parse(map.get("createdAt").toString());
+                LocalDateTime createdAt = LocalDateTime.parse(map.get("createdAt").toString());
                 String totalLikeStr = redis.opsForValue().get("timeline:like:totalcount:" + timelineId);
                 Integer totalLikedCount = totalLikeStr == null ? 0 : Integer.parseInt(totalLikeStr);
                 Map<Long, Integer> userLikeMap = redis.opsForHash().entries("timeline:like:user:" + timelineId)
@@ -221,7 +218,7 @@ public class TimelineServiceImpl implements TimelineService {
                 }
                 // 用户评论数据
                 String key = "timelinecomment:" + timelineId;
-                List<String> jsonList = redis.opsForList().range(key, 0, 100);
+                List<String> jsonList = redis.opsForList().range(key, 0, 9);
                 List<TimelineComment> timelineComments = new ArrayList<>();
                 for (String json : jsonList) {
                     try {
@@ -231,7 +228,7 @@ public class TimelineServiceImpl implements TimelineService {
                         comment.setUserId(node.get("userId").asLong());
                         comment.setComment(node.get("comment").asText());
                         comment.setCreatedAt(
-                                Instant.parse(node.get("createdAt").asText()));
+                                LocalDateTime.parse(node.get("createdAt").asText()));
                         comment.setTimelineId(timelineId);
                         timelineComments.add(comment);
                     } catch (Exception e) {
@@ -276,7 +273,7 @@ public class TimelineServiceImpl implements TimelineService {
             List<String> imgUrls = imgUrlsObj == null
                     ? Collections.emptyList()
                     : JSON.parseArray(imgUrlsObj.toString(), String.class);
-            Instant createdAt = Instant.parse(map.get("createdAt").toString());
+            LocalDateTime createdAt = LocalDateTime.parse(map.get("createdAt").toString());
             String totalLikeStr = redis.opsForValue().get("timeline:like:totalcount:" + timelineId);
             Integer totalLikedCount = totalLikeStr == null ? 0 : Integer.parseInt(totalLikeStr);
             Map<Long, Integer> userLikeMap = redis.opsForHash().entries("timeline:like:user:" + timelineId)
@@ -326,7 +323,7 @@ public class TimelineServiceImpl implements TimelineService {
                     comment.setUserId(node.get("userId").asLong());
                     comment.setComment(node.get("comment").asText());
                     comment.setCreatedAt(
-                            Instant.parse(node.get("createdAt").asText()));
+                            LocalDateTime.parse(node.get("createdAt").asText()));
                     comment.setTimelineId(timelineId);
 
                     timelineComments.add(comment);
@@ -398,14 +395,15 @@ public class TimelineServiceImpl implements TimelineService {
         String comment = postCommentDTO.getComment();
         Long userId = BaseContext.getCurrentId();
         Long timelineId = postCommentDTO.getTimelineId();
-        Instant createdAt = Instant.now();
+        LocalDateTime createdAt = LocalDateTime.now();
+
         TimelineComment timelineComment = TimelineComment.builder()
                 .comment(comment)
                 .userId(userId)
                 .createdAt(createdAt)
                 .timelineId(timelineId).build();
-        timelineMapper.postComment(timelineComment);
         // mysql save
+        timelineMapper.postComment(timelineComment);
         Long commentId = timelineComment.getCommentId();
         // redis save
         String key = "timelinecomment:" + postCommentDTO.getTimelineId();
@@ -427,7 +425,6 @@ public class TimelineServiceImpl implements TimelineService {
     /**
      * kafka点赞消费者
      */
-    // 没有使用这个topic
     @Override
     @KafkaListener(topics = "timeline_likehit", groupId = "timeline-group")
     public void onLikeHit(@Payload TimelineLikeHitEvent event) {

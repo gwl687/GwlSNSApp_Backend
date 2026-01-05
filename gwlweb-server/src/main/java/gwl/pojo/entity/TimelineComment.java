@@ -1,6 +1,5 @@
 package gwl.pojo.entity;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
@@ -17,5 +16,5 @@ public class TimelineComment {
     Long timelineId;
     Long userId;
     String comment;
-    Instant createdAt;
+    LocalDateTime createdAt;
 }

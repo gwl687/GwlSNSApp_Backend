@@ -55,12 +55,7 @@ public class UserController {
     Result<UserLoginVO> Login(@RequestBody UserLoginDTO userLoginDTO) {
         log.info("用户登录：{}", userLoginDTO);
         User user = userService.userLogin(userLoginDTO);
-        String oldUserId = redis.opsForValue().get("push_token_user:" + userLoginDTO.getPushToken());
-        if (oldUserId != null && !oldUserId.equals(user.getId().toString())) {
-            redis.delete("push_token:" + oldUserId);
-        }
         redis.opsForValue().set("push_token:" + user.getId(), userLoginDTO.getPushToken());
-        redis.opsForValue().set("push_token_user:" + userLoginDTO.getPushToken(), user.getId().toString());
         // 登录成功后生成令牌
         String token = JwtUtil.generateToken(user.getId());
         UserLoginVO userloginVO = UserLoginVO.builder()
@@ -127,6 +122,7 @@ public class UserController {
         userService.register(registerDTO);
         return Result.success();
     }
+
 
     /**
      * 改名

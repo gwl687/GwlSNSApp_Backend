@@ -17,9 +17,9 @@ public interface FriendMapper {
          * @return
          */
         @Select("""
-                        SELECT tu.*
-                        FROM test_user tu
-                        JOIN friend_relation fr ON tu.id = fr.friend_id
+                        SELECT u.*
+                        FROM test_user u
+                        JOIN friend_relation fr ON u.id = fr.friend_id
                         WHERE fr.user_id = #{id}
                         """)
         List<User> getFriendListByUserId(Long id);
@@ -40,7 +40,7 @@ public interface FriendMapper {
          * @param friendId
          * @param res
          */
-
+        
         void friendRequestResponse(Long myId, Long friendId, Integer res);
 
         /**

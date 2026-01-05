@@ -1,6 +1,5 @@
 package gwl.mapper;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,14 +35,14 @@ public interface TimelineMapper {
      * 用户timeline表新增数据
      */
     @Insert("insert into timeline(user_id,post_id,created_at) values (#{userId},#{postId},#{createdAt})")
-    void addTimeline(Long userId, Long postId, Instant createdAt);
+    void addTimeline(Long userId, Long postId, LocalDateTime createdAt);
 
     /**
      * 获取用户timeline ids
      * 
      * @return
      */
-    List<Long> getTimelineIds(Long userId, Integer limit, Instant cursor);
+    List<Long> getTimelineIds(Long userId, Integer limit, LocalDateTime cursor);
 
     /**
      * 获取timeline内容
