@@ -1,2 +1,2 @@
-gwlweb-server/src/main/resources/firebase-service-account.json
+gwlweb-server/src/main/resources/*.json
 gwlweb-server/src/main/resources/*.yml
