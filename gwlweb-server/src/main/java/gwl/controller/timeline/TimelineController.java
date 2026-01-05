@@ -1,5 +1,6 @@
 package gwl.controller.timeline;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,7 +62,7 @@ public class TimelineController {
     @GetMapping(path = "gettimelinepost", produces = "application/json")
     @Operation(summary = "get all timelines content")
     Result<List<TimelineVO>> getTimelinePost(@RequestParam Integer limit,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime cursor) {
+            @RequestParam(required = false) Instant cursor) {
         return Result.success(timelineService.getTimelinePost(limit, cursor));
     }
 
