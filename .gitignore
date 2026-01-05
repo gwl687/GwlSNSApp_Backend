@@ -2,3 +2,4 @@ gwlweb-server/src/main/resources/application-dev.yml
 gwlweb-server/src/main/resources/application-localdev.yml
 gwlweb-server/src/main/resources/firebase-service-account.json
 
+gwlweb-server/src/main/resources/application.yml
