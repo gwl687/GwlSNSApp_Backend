@@ -148,6 +148,7 @@ public class TimelineServiceImpl implements TimelineService {
         String content = event.getContent();
         Instant createdAt = event.getCreatedAt();
         if (fanIds == null || fanIds.isEmpty()) {
+            log.info("fanid为空");
             return;
         }
         // 将帖子推送到每个粉丝的 Redis 时间线
