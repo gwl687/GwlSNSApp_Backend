@@ -1,6 +1,7 @@
 package gwl.service;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,7 +25,7 @@ public interface TimelineService {
     /**
      * 获取帖子列表(刷新)
      */
-    List<TimelineVO> getTimelinePost(Integer limit, LocalDateTime cursor);
+    List<TimelineVO> getTimelinePost(Integer limit, Instant cursor);
     /**
      * 获取单个帖子
      * @return

@@ -1,5 +1,6 @@
 package gwl.pojo.vo;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -16,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class TimelineVO {
     String userName;
     String context;
-    LocalDateTime createdAt;
+    Instant createdAt;
     List<String> imgUrls;
     //点赞总数
     Integer totalLikeCount;
