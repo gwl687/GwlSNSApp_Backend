@@ -20,7 +20,7 @@ public interface FriendMapper {
                         SELECT tu.*
                         FROM test_user tu
                         JOIN friend_relation fr ON tu.id = fr.friend_id
-                        WHERE fr.user_id = #{id}
+                        WHERE fr.user_id = #{id} and fr.status = 1
                         """)
         List<User> getFriendListByUserId(Long id);
 

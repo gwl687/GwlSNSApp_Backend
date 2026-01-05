@@ -253,8 +253,8 @@ public class TimelineServiceImpl implements TimelineService {
                         .build();
                 timelineVOs.add(timelineVO);
             } else {
-                log.info("没有取到redis里的timeline数据，查询mysql");
-                timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
+                //log.info("没有取到redis里的timeline数据，查询mysql");
+                //timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
             }
         }
         return timelineVOs;

@@ -21,7 +21,7 @@ public class FirebaseConfig {
             return;
         }
 
-        InputStream serviceAccount = new ClassPathResource("firebase-service-account.json").getInputStream();
+        InputStream serviceAccount = new ClassPathResource("timeline-app-401b0-6a90b1a6217e.json").getInputStream();
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
