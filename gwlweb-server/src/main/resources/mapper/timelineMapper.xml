@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="gwl.mapper.TimelineMapper">
+<mapper namespace="com.gwl.mapper.TimelineMapper">
 
     <!-- TimelineVO 结果映射 -->
-    <resultMap id="TimelineVOMap" type="gwl.pojo.vo.TimelineVO">
+    <resultMap id="TimelineVOMap" type="com.gwl.pojo.vo.TimelineVO">
         <id property="timelineId" column="timeline_id"/>
         <result property="userName" column="username"/>
         <result property="context" column="context"/>
@@ -17,12 +17,12 @@
         <result property="likedByMeCount" column="likedByMeCount"/>
 
         <collection property="topLikeUsers"
-                    ofType="gwl.pojo.vo.LikeUserVO"
+                    ofType="com.gwl.pojo.vo.LikeUserVO"
                     column="timeline_id"
                     select="selectTopLikeUsers"/>
 
         <collection property="comments"
-                    ofType="gwl.pojo.entity.TimelineComment"
+                    ofType="com.gwl.pojo.entity.TimelineComment"
                     column="timeline_id"
                     select="selectComments"/>
     </resultMap>
@@ -75,7 +75,7 @@
 
     <select id="selectTopLikeUsers"
             parameterType="long"
-            resultType="gwl.pojo.vo.LikeUserVO">
+            resultType="com.gwl.pojo.vo.LikeUserVO">
         SELECT
             tl.user_id    AS userId,
             u.avatarurl  AS avatarUrl,
@@ -91,7 +91,7 @@
     <!--子查询：帖子评论-->
     <select id="selectComments"
             parameterType="long"
-            resultType="gwl.pojo.entity.TimelineComment">
+            resultType="com.gwl.pojo.entity.TimelineComment">
         SELECT
         id           AS commentId,
         user_id      AS userId,
@@ -105,7 +105,7 @@
     </select>
 
     <!-- 刷盘帖子对应用户点赞数 -->
-    <insert id="flushLikeToDB" parameterType="gwl.pojo.entity.TimelineUserLike">
+    <insert id="flushLikeToDB" parameterType="com.gwl.pojo.entity.TimelineUserLike">
         <if test="userLikeCount != null and userLikeCount.size() > 0">
     INSERT INTO timeline_like
         (timeline_id, user_id, like_count)

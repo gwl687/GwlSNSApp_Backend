@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-
 import com.gwl.context.BaseContext;
 import com.gwl.mapper.ChatMessageMapper;
 import com.gwl.pojo.dto.SendPrivateMessageDTO;

@@ -1,12 +1,7 @@
 package com.gwl.mapper;
 
 import java.util.List;
-
-import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
-import com.gwl.pojo.dto.SendPrivateMessageDTO;
 import com.gwl.pojo.vo.PrivateMessageVO;
 
 @Mapper
