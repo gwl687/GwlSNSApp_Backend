@@ -21,7 +21,7 @@ jobs:
           java-version: '17'
 
       - name: Build with Maven
-        run: mvn clean install -DskipTests
+        run: mvn clean package -DskipTests
 
       - name: Copy & Deploy JAR to Server
         uses: appleboy/scp-action@v0.1.7 
