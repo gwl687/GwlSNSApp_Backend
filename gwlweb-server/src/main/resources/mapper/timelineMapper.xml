@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="gwl.mapper.TimelineMapper">
+
+    <!-- TimelineVO 结果映射 -->
+    <resultMap id="TimelineVOMap" type="gwl.pojo.vo.TimelineVO">
+        <id property="timelineId" column="timeline_id"/>
+        <result property="userName" column="username"/>
+        <result property="context" column="context"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="imgUrls"
+                column="img_urls"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+
+        <result property="totalLikeCount" column="total_like_count"/>
+        <result property="likedByMeCount" column="likedByMeCount"/>
+
+        <collection property="topLikeUsers"
+                    ofType="gwl.pojo.vo.LikeUserVO"
+                    column="timeline_id"
+                    select="selectTopLikeUsers"/>
+
+        <collection property="comments"
+                    ofType="gwl.pojo.entity.TimelineComment"
+                    column="timeline_id"
+                    select="selectComments"/>
+    </resultMap>
+
+    <!-- 获取timelineIds -->
+    <select id="getTimelineIds" resultType="java.lang.Long">
+        SELECT post_id
+        FROM timeline
+        WHERE user_id = #{userId}
+    <if test="cursor != null">
+        AND created_at &lt; #{cursor}
+    </if>
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
+
+    <!-- 主查询：Timeline 内容 -->
+    <select id="getTimelineContent"
+            parameterType="long"
+            resultMap="TimelineVOMap">
+        SELECT
+            tc.id              AS timeline_id,
+            tu.username        AS username,
+            tc.context         AS context,
+            tc.created_at      AS created_at,
+            tc.img_urls        AS img_urls,
+            IFNULL(SUM(tl.like_count), 0) AS total_like_count,
+            IFNULL((
+                SELECT tlu.like_count
+                FROM timeline_like tlu
+                WHERE tlu.timeline_id = tc.id
+                AND tlu.user_id = #{currentUserId}
+                ), 0) AS likedByMeCount
+        FROM timeline_content tc
+        LEFT JOIN test_user tu
+            ON tc.user_id = tu.id
+        LEFT JOIN timeline_like tl
+            ON tc.id = tl.timeline_id
+        WHERE tc.id = #{timelineId}
+        GROUP BY
+            tc.id,
+            tu.username,
+            tc.context,
+            tc.created_at,
+            tc.img_urls
+    </select>
+
+    <!-- 子查询：点赞 Top 用户 -->
+
+    <select id="selectTopLikeUsers"
+            parameterType="long"
+            resultType="gwl.pojo.vo.LikeUserVO">
+        SELECT
+            tl.user_id    AS userId,
+            u.avatarurl  AS avatarUrl,
+            tl.like_count AS userLikeCount
+        FROM timeline_like tl
+        JOIN test_user u
+            ON tl.user_id = u.id
+        WHERE tl.timeline_id = #{timeline_id}
+        ORDER BY tl.like_count DESC
+        LIMIT 20
+    </select>
+
+    <!--子查询：帖子评论-->
+    <select id="selectComments"
+            parameterType="long"
+            resultType="gwl.pojo.entity.TimelineComment">
+        SELECT
+        id           AS commentId,
+        user_id      AS userId,
+        comment      AS comment,
+        timeline_id  AS timelineId,
+        created_at   AS createdAt
+        FROM timeline_comment
+        WHERE timeline_id = #{timeline_id}
+        ORDER BY created_at
+        LIMIT 100
+    </select>
+
+    <!-- 刷盘帖子对应用户点赞数 -->
+    <insert id="flushLikeToDB" parameterType="gwl.pojo.entity.TimelineUserLike">
+        <if test="userLikeCount != null and userLikeCount.size() > 0">
+    INSERT INTO timeline_like
+        (timeline_id, user_id, like_count)
+    VALUES
+    <foreach collection="userLikeCount"
+             index="userId"
+             item="likeCount"
+             separator=",">
+        (
+            #{timelineId},
+            #{userId},
+            #{likeCount}
+        )
+    </foreach>
+            ON DUPLICATE KEY UPDATE
+                like_count = like_count + VALUES(like_count),
+                updated_at = CURRENT_TIMESTAMP
+        </if>
+    </insert>
+
+</mapper>

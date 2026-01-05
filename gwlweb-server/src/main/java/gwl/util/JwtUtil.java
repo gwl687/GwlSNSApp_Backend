@@ -10,18 +10,14 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-public class JwtUtil {// 使用 Keys.secretKeyFor 生成安全密钥
-    // private static final SecretKey SECRET_KEY =
-    // Keys.secretKeyFor(SignatureAlgorithm.HS256);
+public class JwtUtil {
     private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(
             "my-test-secret-my-test-secret-my-test-secret".getBytes(StandardCharsets.UTF_8));
 
     public static String generateToken(Long id) {
         return Jwts.builder()
                 .claim("id", id)
-                .setIssuedAt(new Date())
-                //测试用，暂时永不过期
-                //.setExpiration(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L)) // 一周
+                .setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L)) // 一周
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
     }

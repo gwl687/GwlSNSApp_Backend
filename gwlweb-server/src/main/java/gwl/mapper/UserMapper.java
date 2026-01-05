@@ -1,24 +1,20 @@
 package gwl.mapper;
 
 import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
-
-import gwl.entity.GroupChat;
-import gwl.entity.User;
-import gwl.pojo.CommonPojo.Message;
-import gwl.pojo.DTO.AddFriendToChatListDTO;
-import gwl.pojo.DTO.GroupmessageDTO;
-import gwl.pojo.DTO.UpdateUserInfoDTO;
-import gwl.pojo.VO.GroupChatVO;
-import gwl.pojo.VO.GroupMessagesVO;
+import gwl.pojo.dto.AddFriendToChatListDTO;
+import gwl.pojo.dto.UserInfoDTO;
 import gwl.pojo.entity.ChatFriend;
 import gwl.pojo.entity.ChatListId;
+import gwl.pojo.entity.GroupChat;
+import gwl.pojo.entity.Message;
+import gwl.pojo.entity.User;
+import gwl.pojo.vo.GroupChatVO;
+import gwl.pojo.vo.GroupMessagesVO;
+import gwl.pojo.vo.SearchForUserVO;
 
 @Mapper
 public interface UserMapper {
@@ -40,6 +36,22 @@ public interface UserMapper {
     void insert(User user);
 
     /**
+     * 改名
+     * 
+     * @param userName
+     */
+    @Update("update test_user set username = #{userName} where id = #{userId}")
+    void changeUsername(String userName, Long userId);
+
+    /**
+     * 更新头像url
+     * 
+     * @param avatarUrl
+     */
+    @Update("update test_user set avatarurl = #{avatarUrl} where id = #{myId}")
+    void updateAvatarUrl(Long myId, String avatarUrl);
+
+    /**
      * 根据邮箱获取用户信息
      * 
      * @param emailaddress
@@ -49,6 +61,24 @@ public interface UserMapper {
     User getByUserEmail(String emailaddress);
 
     /**
+     * 遍历有自己的群id
+     * 
+     * @param emailaddress
+     * @return
+     */
+    @Select("select group_id from group_members where user_id = #{myId}")
+    List<Long> getMyGroupIds(Long myId);
+
+    /**
+     * 遍历有自己的朋友id
+     * 
+     * @param emailaddress
+     * @return
+     */
+    @Select("select friend_id from friend_relation where user_id = #{myId}")
+    List<Long> getMyFriendIds(Long myId);
+
+    /**
      * 根据id获取用户信息
      * 
      * @param id
@@ -56,14 +86,6 @@ public interface UserMapper {
      */
     @Select("select * from test_user  where id = #{id}")
     User getByUserId(Long id);
-
-    @Select("""
-            SELECT u.*
-            FROM test_user u
-            JOIN friend_relation fr ON u.id = fr.friend_id
-            WHERE fr.user_id = #{id}
-            """)
-    List<User> getFriendListByUserId(Long id);
 
     /**
      * 更新用户信息
@@ -75,10 +97,16 @@ public interface UserMapper {
             update test_user
             set userName = #{username},
                 sex = #{sex},
-                password = #{password},
                 avatarurl = #{avatarurl}
+                where id = #{id}
             """)
-    public int updateUserInfo(UpdateUserInfoDTO updateUserInfo);
+    public int updateUserInfo(UserInfoDTO userInfo);
+
+    /**
+     * 获取指定ID的用户名
+     */
+    @Select("select username from test_user where id = #{id}")
+    String getUserName(Long id);
 
     /**
      * 新建群聊
@@ -114,8 +142,23 @@ public interface UserMapper {
     /**
      * 添加朋友或群到聊天列表
      */
-    @Insert("insert into chatlist (userId, friendId ,isgroup) values (#{id},#{friendId},#{isGroup})")
+    @Insert("insert into chatlist (user_id, friend_id ,isgroup) values (#{userId},#{friendId},#{isGroup})")
     void addFriendToChatList(AddFriendToChatListDTO addFriendToChatListDTO);
+
+    /*
+     * 添加群成员
+     */
+    @Insert("insert into group_members (group_id,user_id) values (#{groupId},#{userId})")
+    Boolean addGroupMembers(Long groupId, Long userId);
+
+    @Insert("delete from group_members where group_id = #{groupId} and user_id = #{userId}")
+    Boolean removeGroupMembers(Long groupId, Long userId);
+
+    /*
+     * 更改群名
+     */
+    @Insert("update chatgroups set name = #{groupName} where id = #{groupId}")
+    Boolean updateGroupName(Long groupId, String groupName);
 
     /**
      * 获取聊天列表的各个id
@@ -123,7 +166,7 @@ public interface UserMapper {
      * @param id
      * @return
      */
-    @Select("select friend_id As id, isgroup As isGroup from chatlist where user_id = #{id}")
+    @Select("select friend_id As id, isgroup As isGroup from chatlist where user_id = #{id} order by last_message_time desc")
     List<ChatListId> getChatListIdById(Long id);
 
     /**
@@ -160,4 +203,30 @@ public interface UserMapper {
      */
     @Insert("insert into group_messages(group_id, sender_id, content, type) values(#{toUser},#{fromUser},#{content},#{type})")
     void saveGroupMessage(Message message);
+
+    /**
+     * 获取用户头像url
+     * 
+     * @param userId
+     * @return
+     */
+    @Select("select avatarurl from test_user where id = #{userId}")
+    String getUserAvatarUrl(Long userId);
+
+    /**
+     * 根据关键词查找用户
+     * 
+     * @param keyword
+     * @return
+     */
+    List<SearchForUserVO> searchForUsers(String keyword, Long userId);
+
+    /**
+     * 申请好友
+     * 
+     * @param friendId
+     * @param myId
+     */
+    @Insert("insert into friend_relation(user_id,friend_id,status) values (#{myId},#{friendId},2)")
+    void sendFriendRequest(Long myId, Long friendId);
 }
