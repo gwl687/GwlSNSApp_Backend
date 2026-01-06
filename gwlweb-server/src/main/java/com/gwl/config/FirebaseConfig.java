@@ -2,6 +2,8 @@ package com.gwl.config;
 
 import java.io.IOException;
 import java.io.InputStream;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -12,7 +14,8 @@ import jakarta.annotation.PostConstruct;
 @Configuration
 
 public class FirebaseConfig {
-
+    @Value('bf')
+    String s;
     @PostConstruct
     public void init() throws IOException {
         if (!FirebaseApp.getApps().isEmpty()) {
