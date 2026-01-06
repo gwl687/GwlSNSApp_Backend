@@ -148,6 +148,7 @@ public class TimelineServiceImpl implements TimelineService {
         String content = event.getContent();
         Instant createdAt = event.getCreatedAt();
         if (fanIds == null || fanIds.isEmpty()) {
+            log.info("fanid为空");
             return;
         }
         // 将帖子推送到每个粉丝的 Redis 时间线
@@ -253,8 +254,8 @@ public class TimelineServiceImpl implements TimelineService {
                         .build();
                 timelineVOs.add(timelineVO);
             } else {
-                log.info("没有取到redis里的timeline数据，查询mysql");
-                timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
+                //log.info("没有取到redis里的timeline数据，查询mysql");
+                //timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
             }
         }
         return timelineVOs;

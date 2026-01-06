@@ -28,7 +28,7 @@
     </resultMap>
 
     <!-- 获取timelineIds -->
-    <select id="getTimelineIds" resultType="java.lang.Long">
+    <!-- <select id="getTimelineIds" resultType="java.lang.Long">
         SELECT post_id
         FROM timeline
         WHERE user_id = #{userId}
@@ -36,6 +36,22 @@
         AND created_at &lt; #{cursor}
     </if>
         ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select> -->
+
+    <!-- 获取timelineIds 修正--> 
+    <select id="getTimelineIds" resultType="java.lang.Long">
+        SELECT tc.id
+        FROM timeline_content tc
+        WHERE tc.user_id = #{userId}
+        OR tc.user_id IN (
+        SELECT fr.friend_id
+        FROM friend_relation fr
+        WHERE fr.user_id = #{userId})
+    <if test="cursor != null">
+        AND tc.created_at &lt; #{cursor}
+    </if>
+        ORDER BY tc.created_at DESC
         LIMIT #{limit}
     </select>
 

@@ -9,7 +9,7 @@
         <version>3.2.6</version>
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
-    <groupId>org.example</groupId>
+    <groupId>com.gwl</groupId>
     <artifactId>gwlweb-server</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>gwlweb-server</name>
@@ -157,6 +157,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.gwl.GwlwebServerApplication</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>

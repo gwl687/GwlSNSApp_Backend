@@ -125,7 +125,7 @@ public class CommonServiceImpl implements CommonService {
         data.put("type", type);
         data.put("title", title);
         data.put("content", content);
-        data.put("fromUser",fromUser.toString());
+        data.put("fromUser", fromUser.toString());
         Message.Builder builder = Message.builder()
                 .setToken(deviceToken)
                 .putAllData(data);
@@ -153,7 +153,7 @@ public class CommonServiceImpl implements CommonService {
                                             AndroidNotification.builder()
                                                     .setTitle(title)
                                                     .setBody(content)
-                                                    .setChannelId("default_channel") 
+                                                    .setChannelId("default_channel")
                                                     .setSound("default")
                                                     .build())
                                     .build())
@@ -175,7 +175,7 @@ public class CommonServiceImpl implements CommonService {
             String response = FirebaseMessaging.getInstance().send(builder.build());
             log.info("FCM response: {}", response);
         } catch (Exception e) {
-            log.error("FCM push error, token={}", deviceToken);
+            log.error("FCM push error: ", e);
         }
     }
 }

@@ -48,6 +48,7 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
         Channel toChannel = ChannelManager.userChannelMap.get(toUser);
         // 对方在线的话，长连接发消息
         if (toChannel != null && toChannel.isActive()) {
+            log.info("对方在线，发送消息");
             toChannel.writeAndFlush(new TextWebSocketFrame(sendMessage));
         }
         switch (type) {
