@@ -14,18 +14,18 @@ import jakarta.annotation.PostConstruct;
 
 @Configuration
 public class FirebaseConfig {
-    @Value("${firebase.service-account}")
-    private String firebaseServiceAccountPath;
+    // @Value("${firebase.service-account}")
+    // private String firebaseServiceAccountPath;
 
     @PostConstruct
     public void init() throws IOException {
         if (!FirebaseApp.getApps().isEmpty()) {
             return;
         }
-        InputStream serviceAccount = new FileInputStream(firebaseServiceAccountPath);
+        //InputStream serviceAccount = new FileInputStream(firebaseServiceAccountPath);
 
-        // InputStream serviceAccount = new
-        // ClassPathResource("timeline-app-401b0-6a90b1a6217e.json").getInputStream();
+        InputStream serviceAccount = new
+        ClassPathResource("timeline-app-401b0-6a90b1a6217e.json").getInputStream();
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
