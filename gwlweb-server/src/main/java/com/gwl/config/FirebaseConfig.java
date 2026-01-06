@@ -1,5 +1,6 @@
 package com.gwl.config;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -14,15 +15,17 @@ import jakarta.annotation.PostConstruct;
 @Configuration
 
 public class FirebaseConfig {
-    @Value('bf')
-    String s;
+    @Value('${firebase.service-account}')
+    String firebaseServiceAccountPath;
+
     @PostConstruct
     public void init() throws IOException {
         if (!FirebaseApp.getApps().isEmpty()) {
             return;
         }
-
-        InputStream serviceAccount = new ClassPathResource("firebase-app-local.json").getInputStream();
+        InputStream serviceAccount = new FileInputStream(firebaseServiceAccountPath);
+        // InputStream serviceAccount = new
+        // ClassPathResource("firebase-app-local.json").getInputStream();
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
