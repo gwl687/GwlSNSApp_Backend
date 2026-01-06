@@ -50,7 +50,7 @@ public class NettyServer implements CommandLineRunner {
                         // 从spring注入
                         p.addLast(dispatcherHandler);
                         // p.addLast(commandHandler);
-                        p.addLast(chatHandler);
+                        // p.addLast(chatHandler);
                     }
                 });
 
