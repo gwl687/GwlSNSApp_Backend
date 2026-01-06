@@ -10,6 +10,7 @@ import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
 
 @Configuration
+
 public class FirebaseConfig {
 
     @PostConstruct
@@ -18,7 +19,7 @@ public class FirebaseConfig {
             return;
         }
 
-        InputStream serviceAccount = new ClassPathResource("firebase-service-account.json").getInputStream();
+        InputStream serviceAccount = new ClassPathResource("firebase-app-local.json").getInputStream();
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
