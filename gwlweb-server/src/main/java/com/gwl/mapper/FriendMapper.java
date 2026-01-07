@@ -73,4 +73,6 @@ public interface FriendMapper {
          */
         @Update("update chatgroups set name = #{newName} where id = #{groupId}")
         void changeGroupName(Long groupId, String newName);
+
+        List<Long> getRecommendedFriendIds(Long myId);
 }

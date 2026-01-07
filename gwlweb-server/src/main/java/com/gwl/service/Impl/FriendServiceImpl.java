@@ -1,14 +1,18 @@
 package com.gwl.service.Impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.firebase.auth.UserInfo;
 import com.gwl.context.BaseContext;
 import com.gwl.mapper.FriendMapper;
 import com.gwl.mapper.UserMapper;
 import com.gwl.pojo.entity.User;
+import com.gwl.pojo.vo.RecommendedFriendVO;
+import com.gwl.pojo.vo.UserInfoVO;
 import com.gwl.service.CommonService;
 import com.gwl.service.FriendService;
 
@@ -80,5 +84,29 @@ public class FriendServiceImpl implements FriendService {
     @Transactional
     public void addToChatList(Long friendId) {
         friendMapper.addToChatList(BaseContext.getCurrentId(), friendId);
+    }
+
+    /**
+     * 获取推荐好友
+     * 
+     * @return
+     */
+    List<RecommendedFriendVO> getRecommendedFriendIds() {
+        List<RecommendedFriendVO> recommendedFriendVOs = new ArrayList<>();
+        List<Long> recommandedFriendIds = friendMapper.getRecommendedFriendIds(BaseContext.getCurrentId());
+        for (Long recommandedFriendId : recommandedFriendIds) {
+            User friend = userMapper.getByUserId(recommandedFriendId);
+            List<String> interests = userMapper.getInterestsByUserId(recommandedFriendId);
+            RecommendedFriendVO recommendedFriendVO = RecommendedFriendVO.builder()
+                    .userId(friend.getId())
+                    .sex(friend.getSex())
+                    .age(friend.getAge())
+                    .username(friend.getUsername())
+                    .avatarurl(friend.getAvatarurl())
+                    .emailaddress(friend.getEmailaddress())
+                    .interests(interests).build();
+            recommendedFriendVOs.add(recommendedFriendVO);
+        }
+        return recommendedFriendVOs;
     }
 }

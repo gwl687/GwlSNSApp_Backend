@@ -229,4 +229,7 @@ public interface UserMapper {
      */
     @Insert("insert into friend_relation(user_id,friend_id,status) values (#{myId},#{friendId},2)")
     void sendFriendRequest(Long myId, Long friendId);
+
+    @Select("select")
+    List<String> getInterestsByUserId(Long userId);
 }

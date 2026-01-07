@@ -39,19 +39,20 @@
         LIMIT #{limit}
     </select> -->
 
-    <!-- 获取timelineIds 修正--> 
+    <!-- 获取timelineIds--> 
     <select id="getTimelineIds" resultType="java.lang.Long">
         SELECT tc.id
         FROM timeline_content tc
-        WHERE tc.user_id = #{userId}
+        WHERE (tc.user_id = #{userId}
         OR tc.user_id IN (
         SELECT fr.friend_id
         FROM friend_relation fr
-        WHERE fr.user_id = #{userId})
-    <if test="cursor != null">
-        AND tc.created_at &lt; #{cursor}
+        WHERE fr.user_id = #{userId}))
+    <if test="cursorTime != null">
+        AND (tc.created_at &lt; #{cursorTime}
+        OR (created_at = #{cursorTime} AND id &lt; #{cursorId}))
     </if>
-        ORDER BY tc.created_at DESC
+        ORDER BY tc.created_at DESC,tc.id DESC
         LIMIT #{limit}
     </select>
 
