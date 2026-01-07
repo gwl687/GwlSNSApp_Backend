@@ -230,6 +230,6 @@ public interface UserMapper {
     @Insert("insert into friend_relation(user_id,friend_id,status) values (#{myId},#{friendId},2)")
     void sendFriendRequest(Long myId, Long friendId);
 
-    @Select("select")
+    @Select("select i.name from user_interest ui join interest i on ui.interest_id = i.id where user_id =#{userId}")
     List<String> getInterestsByUserId(Long userId);
 }

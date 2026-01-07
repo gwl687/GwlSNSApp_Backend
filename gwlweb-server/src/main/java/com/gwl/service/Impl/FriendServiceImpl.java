@@ -91,7 +91,7 @@ public class FriendServiceImpl implements FriendService {
      * 
      * @return
      */
-    List<RecommendedFriendVO> getRecommendedFriendIds() {
+    public List<RecommendedFriendVO> getRecommendedFriends() {
         List<RecommendedFriendVO> recommendedFriendVOs = new ArrayList<>();
         List<Long> recommandedFriendIds = friendMapper.getRecommendedFriendIds(BaseContext.getCurrentId());
         for (Long recommandedFriendId : recommandedFriendIds) {

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.gwl.pojo.entity.User;
+import com.gwl.pojo.vo.RecommendedFriendVO;
 import com.gwl.pojo.vo.SearchForUserVO;
 import com.gwl.pojo.vo.UserInfoVO;
 import com.gwl.result.Result;
@@ -144,5 +145,15 @@ public class FriendController {
     Result<Void> addToChatList(@RequestParam Long friendId) {
         friendService.addToChatList(friendId);
         return Result.success();
+    }
+
+    /**
+     * 获取推荐好友
+     * @return
+     */
+    @GetMapping(path = "/getrecommandedfriends", produces = "application/json")
+    @Operation(summary = "添加朋友到聊天列表")
+    Result<List<RecommendedFriendVO>> getRecommandedFriends() {
+        return Result.success(friendService.getRecommendedFriends());
     }
 }
