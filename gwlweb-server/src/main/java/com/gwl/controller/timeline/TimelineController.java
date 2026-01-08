@@ -62,8 +62,8 @@ public class TimelineController {
     @GetMapping(path = "gettimelinepost", produces = "application/json")
     @Operation(summary = "get all timelines content")
     Result<List<TimelineVO>> getTimelinePost(@RequestParam Integer limit,
-            @RequestParam(required = false) Instant cursor) {
-        return Result.success(timelineService.getTimelinePost(limit, cursor));
+            @RequestParam(required = false) Instant cursorTime, @RequestParam(required = false) Long cursorId) {
+        return Result.success(timelineService.getTimelinePost(limit, cursorTime, cursorId));
     }
 
     /**

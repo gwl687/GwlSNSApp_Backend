@@ -6,10 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.gwl.pojo.dto.AddFriendToChatListDTO;
 import com.gwl.pojo.dto.CreateGroupChatDTO;
 import com.gwl.pojo.dto.GroupmessageDTO;
@@ -59,7 +59,7 @@ public class GroupController {
     @PostMapping(path = "/removegroupmembers/{groupId}", produces = "application/json")
     @Operation(summary = "移除群成员")
     Result<Boolean> removeGroupMembers(@PathVariable Long groupId,
-            @org.springframework.web.bind.annotation.RequestBody CreateGroupChatDTO createGroupChatDTO) {
+            @RequestBody CreateGroupChatDTO createGroupChatDTO) {
         log.info("移除群成员：{}", createGroupChatDTO);
         groupService.removeGroupMembers(groupId, createGroupChatDTO);
         return Result.success(true);
@@ -71,6 +71,7 @@ public class GroupController {
         String token = groupService.createLivekitToken(groupId.toString());
         return Result.success(token);
     }
+    
     /**
      * 创建群聊
      * 
@@ -80,7 +81,7 @@ public class GroupController {
     @PostMapping(path = "/creategroupchat", produces = "application/json")
     @Operation(summary = "创建群聊")
     Result<GroupChatVO> createGroupChat(
-            @org.springframework.web.bind.annotation.RequestBody CreateGroupChatDTO createGroupChatDTO) {
+            @RequestBody CreateGroupChatDTO createGroupChatDTO) {
         log.info("创建群：{}", createGroupChatDTO);
         GroupChatVO groupChatVO = new GroupChatVO();
         groupChatVO = userService.createGroupChat(createGroupChatDTO);

@@ -44,7 +44,7 @@ public interface TimelineMapper {
      * 
      * @return
      */
-    List<Long> getTimelineIds(Long userId, Integer limit, Instant cursor);
+    List<Long> getTimelineIds(Long userId, Integer limit, Instant cursorTime,Long cursorId);
 
     /**
      * 获取timeline内容

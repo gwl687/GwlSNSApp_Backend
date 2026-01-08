@@ -292,15 +292,12 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 创建群聊
-     * 
-     * @throws IOException
-     * @throws FirebaseMessagingException
      */
     @Override
     public GroupChatVO createGroupChat(CreateGroupChatDTO createGroupChatDTO) {
         List<Long> groupChatMembers = createGroupChatDTO.getSelectedFriends();
         List<String> groupNameList = new ArrayList<>();
-        com.gwl.pojo.entity.User owner = userMapper.getByUserId(BaseContext.getCurrentId());
+        User owner = userMapper.getByUserId(BaseContext.getCurrentId());
         groupNameList.add(owner.getUsername());
         for (Long memberId : groupChatMembers) {
             com.gwl.pojo.entity.User groupMember = userMapper.getByUserId(memberId);
@@ -336,7 +333,7 @@ public class UserServiceImpl implements UserService {
             userMapper.addFriendToChatList(addFriendToChatListDTO);
         }
 
-        // android推送
+        // 推送给群组成员
         for (Long id : groupChatMembers) {
             commonService.sendPush(id, BaseContext.getCurrentId(), "chatgroup invite",
                     owner.getUsername() + "invite you to join a chat group", "joingroup", false);

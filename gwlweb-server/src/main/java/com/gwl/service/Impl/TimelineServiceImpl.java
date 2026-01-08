@@ -170,9 +170,9 @@ public class TimelineServiceImpl implements TimelineService {
      * 获取帖子(刷新)
      */
     @Override
-    public List<TimelineVO> getTimelinePost(Integer limit, Instant cursor) {
+    public List<TimelineVO> getTimelinePost(Integer limit, Instant cursor, Long cursorId) {
         List<TimelineVO> timelineVOs = new ArrayList<>();
-        List<Long> timelineIds = timelineMapper.getTimelineIds(BaseContext.getCurrentId(), limit, cursor);
+        List<Long> timelineIds = timelineMapper.getTimelineIds(BaseContext.getCurrentId(), limit, cursor, cursorId);
         for (Long timelineId : timelineIds) {
             // redis里有数据就取redis的
             if (redis.hasKey("timeline:post:" + timelineId)) {
@@ -254,8 +254,9 @@ public class TimelineServiceImpl implements TimelineService {
                         .build();
                 timelineVOs.add(timelineVO);
             } else {
-                //log.info("没有取到redis里的timeline数据，查询mysql");
-                //timelineVOs.add(timelineMapper.getTimelineContent(timelineId, BaseContext.getCurrentId()));
+                // log.info("没有取到redis里的timeline数据，查询mysql");
+                // timelineVOs.add(timelineMapper.getTimelineContent(timelineId,
+                // BaseContext.getCurrentId()));
             }
         }
         return timelineVOs;

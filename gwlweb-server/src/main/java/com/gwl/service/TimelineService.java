@@ -25,7 +25,7 @@ public interface TimelineService {
     /**
      * 获取帖子列表(刷新)
      */
-    List<TimelineVO> getTimelinePost(Integer limit, Instant cursor);
+    List<TimelineVO> getTimelinePost(Integer limit, Instant cursorTime, Long cursorId);
     /**
      * 获取单个帖子
      * @return
