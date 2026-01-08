@@ -8,7 +8,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import lombok.extern.slf4j.Slf4j;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration.class
+})
 @EnableTransactionManagement
 @Slf4j
 @EnableCaching
