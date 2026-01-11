@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.gwl.pojo.dto.AddFriendToChatListDTO;
 import com.gwl.pojo.dto.CreateGroupChatDTO;
+import com.gwl.pojo.dto.GoogleLoginDto;
 import com.gwl.pojo.dto.RegisterDTO;
 import com.gwl.pojo.dto.UserInfoDTO;
 import com.gwl.pojo.dto.UserLoginDTO;
@@ -17,6 +18,7 @@ import com.gwl.pojo.entity.User;
 import com.gwl.pojo.vo.GroupChatVO;
 import com.gwl.pojo.vo.GroupMessagesVO;
 import com.gwl.pojo.vo.SearchForUserVO;
+import com.gwl.pojo.vo.UserLoginVO;
 
 public interface UserService {
   /**
@@ -26,6 +28,14 @@ public interface UserService {
    * @return
    */
   User userLogin(UserLoginDTO userLoginDTO);
+
+  /**
+   * googlelogin
+   * 
+   * @param idToken
+   * @return
+   */
+  UserLoginVO googleLogin(GoogleLoginDto googleLoginDto);
 
   /**
    * 发送验证码
@@ -48,7 +58,7 @@ public interface UserService {
    */
   void changeUsername(String userName);
 
-   /**
+  /**
    * 上传新头像
    * 
    * @param registerDTO
@@ -125,6 +135,7 @@ public interface UserService {
 
   /**
    * 更新用户信息的推送
+   * 
    * @param event
    */
   public void onUpdateUserInfoPush(@Payload UpdateUserInfoPushEvent event);

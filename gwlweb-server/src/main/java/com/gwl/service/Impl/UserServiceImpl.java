@@ -1,6 +1,7 @@
 package com.gwl.service.Impl;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -8,7 +9,10 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import org.checkerframework.checker.units.qual.t;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -17,6 +21,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.gwl.constant.BaseConstant;
 import com.gwl.constant.MailConstant;
@@ -28,6 +37,7 @@ import com.gwl.mapper.FriendMapper;
 import com.gwl.mapper.UserMapper;
 import com.gwl.pojo.dto.AddFriendToChatListDTO;
 import com.gwl.pojo.dto.CreateGroupChatDTO;
+import com.gwl.pojo.dto.GoogleLoginDto;
 import com.gwl.pojo.dto.RegisterDTO;
 import com.gwl.pojo.dto.UserInfoDTO;
 import com.gwl.pojo.dto.UserLoginDTO;
@@ -41,9 +51,12 @@ import com.gwl.pojo.entity.User;
 import com.gwl.pojo.vo.GroupChatVO;
 import com.gwl.pojo.vo.GroupMessagesVO;
 import com.gwl.pojo.vo.SearchForUserVO;
+import com.gwl.pojo.vo.UserLoginVO;
 import com.gwl.properties.MailProperties;
 import com.gwl.service.CommonService;
 import com.gwl.service.UserService;
+import com.gwl.util.JwtUtil;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -73,6 +86,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Value("${google.web-client-id}")
+    private String googleWebClientId;
+
     @Override
     public User userLogin(UserLoginDTO userLoginDTO) {
         String emailaddress = userLoginDTO.getEmailaddress();
@@ -93,6 +109,53 @@ public class UserServiceImpl implements UserService {
         // device token
         stringRedis.opsForValue().set("push_token:" + user.getId(), userLoginDTO.getPushToken());
         return user;
+    }
+
+    @Override
+    public UserLoginVO googleLogin(GoogleLoginDto googleLoginDto) {
+        GoogleIdToken.Payload payload;
+        UserLoginVO userLoginVO = new UserLoginVO();
+        // s校验 Google id_token
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(),
+                new GsonFactory())
+                .setAudience(List.of(googleWebClientId))
+                .build();
+        try {
+            GoogleIdToken idToken = verifier.verify(googleLoginDto.getIdTokenString());
+            log.info("idToken={}", idToken);
+            payload = idToken.getPayload();
+            // String googleSub = payload.getSubject();
+            String email = payload.getEmail();
+            // boolean emailVerified = Boolean.TRUE.equals(payload.getEmailVerified());
+            // 查/注册用户
+            User user = userMapper.getByUserEmail(email);
+            String userName = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+            if (user == null) {
+                user = User.builder()
+                        .emailaddress(email)
+                        .username(userName)
+                        .status(1)
+                        .avatarurl(BaseConstant.DEFAULTAVATARURL)
+                        .build();
+                userMapper.insert(user);
+            }
+            // 签发JWT
+            String token = JwtUtil.generateToken(user.getId());
+            userLoginVO = UserLoginVO.builder()
+                    .id(user.getId())
+                    .token(token)
+                    .emailaddress(user.getEmailaddress())
+                    .userName(user.getUsername())
+                    .avatarUrl(user.getAvatarurl()).build();
+            // device token
+            stringRedis.opsForValue().set("push_token:" + user.getId(), googleLoginDto.getPushToken());
+            log.info("google login success ,id = {}", user.getId());
+            return userLoginVO;
+        } catch (Exception e) {
+            log.error("google login failed", e);
+        }
+        return userLoginVO;
     }
 
     /**

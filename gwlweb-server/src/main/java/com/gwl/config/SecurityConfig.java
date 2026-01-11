@@ -22,24 +22,25 @@ public class SecurityConfig {
     @Autowired
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     @Autowired
-    private BaseProperties urlProperties;
+    private BaseProperties baseProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll())
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserServiceImpl))
-                        .successHandler(oAuth2LoginSuccessHandler));
+                        .anyRequest().permitAll());
+        // .oauth2Login(oauth2 -> oauth2
+        // .userInfoEndpoint(userInfo ->
+        // userInfo.userService(customOAuth2UserServiceImpl))
+        // .successHandler(oAuth2LoginSuccessHandler));
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(urlProperties.getUrl()));
+        config.setAllowedOriginPatterns(List.of(baseProperties.getUrl()));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

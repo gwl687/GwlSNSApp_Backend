@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.gwl.context.BaseContext;
 import com.gwl.mapper.UserMapper;
+import com.gwl.pojo.dto.GoogleLoginDto;
 import com.gwl.pojo.dto.RegisterDTO;
 import com.gwl.pojo.dto.UserInfoDTO;
 import com.gwl.pojo.dto.UserLoginDTO;
@@ -168,4 +169,14 @@ public class UserController {
         return Result.success(userMapper.getUserAvatarUrl(userId));
     }
 
+    /**
+     * google login
+     * @param googleLoginDto
+     * @return
+     */
+    @PostMapping(path = "/googlelogin", produces = "application/json")
+    Result<UserLoginVO> googleLogin(@RequestBody GoogleLoginDto googleLoginDto) {
+        log.info("google login: {}", googleLoginDto);
+        return Result.success(userService.googleLogin(googleLoginDto));
+    }
 }

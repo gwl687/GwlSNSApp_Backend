@@ -1,5 +1,7 @@
 package com.gwl.pojo.vo;
 
+import com.google.firebase.auth.internal.GetAccountInfoResponse.User;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
